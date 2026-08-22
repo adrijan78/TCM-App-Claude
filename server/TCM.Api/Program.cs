@@ -3,6 +3,8 @@
 using Microsoft.OpenApi;
 using Serilog;
 using TCM.Api.Middleware;
+using TCM.Infrastructure;
+using TCM.Infrastructure.Persistence.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,9 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 // ---- MVC -----------------------------------------------------------------------------------
 builder.Services.AddControllers();
+
+// ---- Infrastructure (database, repositories, external services) -----------------------------
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // ---- CORS ----------------------------------------------------------------------------------
 // Origins come from configuration so no deployment environment is baked into the code (SPEC section 9).
@@ -64,6 +69,14 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// ---- Seed ----------------------------------------------------------------------------------
+// Idempotent, so it is safe on every start. Development only: production databases are brought
+// up with a migration script instead (see plan.md phase 12).
+if (app.Environment.IsDevelopment())
+{
+    await DatabaseSeeder.SeedAsync(app.Services);
+}
 
 // ---- Pipeline ------------------------------------------------------------------------------
 app.UseMiddleware<ExceptionHandlingMiddleware>();

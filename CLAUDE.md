@@ -96,4 +96,4 @@ See the `tcm-run-local` skill for the full configuration key list, seeded accoun
 
 ## Build status
 
-Phases 0 (versions) and 1 (scaffolding) are complete: solution builds clean, API serves `/health` and Swagger, client builds with Material + Bootstrap. Next is Phase 2 (data model and migrations). See [plan.md](plan.md).
+Phases 0–2 are complete: versions pinned, solution scaffolded, schema from SPEC section 4 applied to SQL Server, seeder verified idempotent. Next is Phase 3 (auth). See [plan.md](plan.md).

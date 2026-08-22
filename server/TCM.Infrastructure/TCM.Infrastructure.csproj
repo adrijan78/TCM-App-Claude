@@ -18,4 +18,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+
+  <ItemGroup>
+    <!-- Identity's AddDefaultTokenProviders (needed for password-reset tokens) lives in the
+         ASP.NET Core shared framework, not in the Microsoft.Extensions.Identity.* packages. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>
