@@ -22,7 +22,7 @@ public class AccountController(IAccountService accountService) : BaseController
     /// </summary>
     [HttpPost("register")]
     [Authorize(Roles = Roles.Coach)]
-    public async Task<ActionResult<ApiResponse<MemberTokenDto>>> Register(
+    public async Task<ActionResult<ApiResponse<RegisteredMemberDto>>> Register(
         [FromBody] MemberRegisterDto dto, CancellationToken ct)
         => HandleResult(await accountService.RegisterAsync(dto, CallerId, ct));
 

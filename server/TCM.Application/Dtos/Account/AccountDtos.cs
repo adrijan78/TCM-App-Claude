@@ -16,6 +16,23 @@ public record MemberTokenDto(
     string? PhotoUrl);
 
 /// <summary>
+/// What registering a member returns to the coach who did it.
+/// </summary>
+/// <remarks>
+/// Deliberately carries no token. Registration authenticates the coach, not the member being
+/// created, so returning a signed JWT for the new account would hand the caller a working
+/// credential for a principal that is not them — and for a second coach, a full admin one. The
+/// new member signs in themselves. SPEC section 6.1 never asks registration to issue a token.
+/// </remarks>
+public record RegisteredMemberDto(
+    string Id,
+    string FirstName,
+    string LastName,
+    string Email,
+    bool IsCoach,
+    IReadOnlyList<string> Roles);
+
+/// <summary>
 /// SPEC section 6.1 — the coach-only registration form. There is no public sign-up, so this is
 /// only ever submitted by an authenticated coach.
 /// </summary>

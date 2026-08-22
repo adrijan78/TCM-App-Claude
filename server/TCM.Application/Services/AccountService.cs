@@ -69,29 +69,29 @@ public class AccountService(
         return ApiResponse<MemberTokenDto>.Ok(await BuildTokenAsync(user));
     }
 
-    public async Task<ApiResponse<MemberTokenDto>> RegisterAsync(
+    public async Task<ApiResponse<RegisteredMemberDto>> RegisterAsync(
         MemberRegisterDto dto, string callerId, CancellationToken ct = default)
     {
         var validation = await registerValidator.ValidateAsync(dto, ct);
         if (!validation.IsValid)
         {
-            return validation.ToFailure<MemberTokenDto>();
+            return validation.ToFailure<RegisteredMemberDto>();
         }
 
         if (!await roleManager.RoleExistsAsync(dto.Role))
         {
-            return ApiResponse<MemberTokenDto>.Fail($"Unknown role '{dto.Role}'.");
+            return ApiResponse<RegisteredMemberDto>.Fail($"Unknown role '{dto.Role}'.");
         }
 
         if (await userManager.FindByEmailAsync(dto.Email) is not null)
         {
-            return ApiResponse<MemberTokenDto>.Conflict("A member with that email already exists.");
+            return ApiResponse<RegisteredMemberDto>.Conflict("A member with that email already exists.");
         }
 
         var coach = await userManager.FindByIdAsync(callerId);
         if (coach is null)
         {
-            return ApiResponse<MemberTokenDto>.Forbidden();
+            return ApiResponse<RegisteredMemberDto>.Forbidden();
         }
 
         var user = new ApplicationUser
@@ -114,7 +114,7 @@ public class AccountService(
         var created = await userManager.CreateAsync(user, dto.Password);
         if (!created.Succeeded)
         {
-            return ApiResponse<MemberTokenDto>.Fail(
+            return ApiResponse<RegisteredMemberDto>.Fail(
                 "Could not create the member.",
                 ErrorKind.Validation,
                 created.Errors.Select(e => e.Description).ToList());
@@ -125,7 +125,7 @@ public class AccountService(
         {
             // Leaving a user with no role would strand them: they could log in but reach nothing.
             await userManager.DeleteAsync(user);
-            return ApiResponse<MemberTokenDto>.Fail(
+            return ApiResponse<RegisteredMemberDto>.Fail(
                 "Could not assign the role.",
                 ErrorKind.Validation,
                 roled.Errors.Select(e => e.Description).ToList());
@@ -147,7 +147,12 @@ public class AccountService(
         await SendWelcomeEmailAsync(user, ct);
 
         logger.LogInformation("Coach {CoachId} registered member {MemberId}.", callerId, user.Id);
-        return ApiResponse<MemberTokenDto>.Ok(await BuildTokenAsync(user));
+
+        // No token: see RegisteredMemberDto. The coach gets the member's details, not a
+        // credential authenticating as them.
+        var roles = await userManager.GetRolesAsync(user);
+        return ApiResponse<RegisteredMemberDto>.Ok(new RegisteredMemberDto(
+            user.Id, user.FirstName, user.LastName, user.Email ?? string.Empty, user.IsCoach, roles.ToList()));
     }
 
     public async Task<ApiResponse<Unit>> ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken ct = default)

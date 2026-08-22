@@ -121,9 +121,27 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
         var response = await client.PostAsJsonAsync("/api/account/register", NewMember("recruit@test.local"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RegisteredMemberDto>>();
         Assert.True(body!.Success);
         Assert.Contains("Member", body.Data!.Roles);
+    }
+
+    [Fact]
+    public async Task Register_DoesNotHandBackATokenForTheNewAccount()
+    {
+        // Registration authenticates the coach, not the member being created. Returning a signed
+        // JWT for the new account would give the caller a working credential for someone else --
+        // and for a newly created Coach, a full admin one.
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+
+        var response = await client.PostAsJsonAsync("/api/account/register",
+            NewMember($"tokenless-{Guid.NewGuid():N}@test.local"));
+
+        response.EnsureSuccessStatusCode();
+        var raw = await response.Content.ReadAsStringAsync();
+
+        Assert.DoesNotContain("\"token\"", raw, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("eyJ", raw, StringComparison.Ordinal); // a JWT always starts this way
     }
 
     [Fact]
@@ -150,7 +168,7 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
             NewMember(email) with { BeltId = belt.Id });
         registered.EnsureSuccessStatusCode();
 
-        var created = await registered.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        var created = await registered.Content.ReadFromJsonAsync<ApiResponse<RegisteredMemberDto>>();
         var memberId = created!.Data!.Id;
 
         var stored = await db.MemberBelts
@@ -291,7 +309,7 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
         var response = await client.PostAsJsonAsync("/api/account/register", invalid);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RegisteredMemberDto>>();
         Assert.False(body!.Success);
         Assert.NotEmpty(body.Errors);
     }

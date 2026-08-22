@@ -30,7 +30,7 @@ public class MembersController(IMemberService memberService) : BaseController
         [FromQuery] AgeGroup? ageGroup,
         CancellationToken ct)
         => HandleResult(await memberService.GetMembersAsync(
-            new MemberFilterDto(search, beltId, ageGroup), CallerId, ct));
+            new MemberFilterDto(search, beltId, ageGroup), CallerId, IsCoach, ct));
 
     /// <summary>A coach may read anyone in their own club; a member only themselves.</summary>
     [HttpGet("{id}")]
@@ -49,7 +49,7 @@ public class MembersController(IMemberService memberService) : BaseController
     [HttpPatch("{id}/deactivate")]
     [Authorize(Roles = Roles.Coach)]
     public async Task<ActionResult<ApiResponse<MemberDto>>> Deactivate(string id, CancellationToken ct)
-        => HandleResult(await memberService.DeactivateAsync(id, CallerId, ct));
+        => HandleResult(await memberService.DeactivateAsync(id, CallerId, IsCoach, ct));
 
     [HttpGet("{id}/belts")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MemberBeltDto>>>> GetBelts(
@@ -60,11 +60,11 @@ public class MembersController(IMemberService memberService) : BaseController
     [Authorize(Roles = Roles.Coach)]
     public async Task<ActionResult<ApiResponse<MemberBeltDto>>> AddBelt(
         string id, [FromBody] AddMemberBeltDto dto, CancellationToken ct)
-        => HandleResult(await memberService.AddBeltAsync(id, dto, CallerId, ct));
+        => HandleResult(await memberService.AddBeltAsync(id, dto, CallerId, IsCoach, ct));
 
     [HttpDelete("{id}/belts/{beltRecordId:int}")]
     [Authorize(Roles = Roles.Coach)]
     public async Task<ActionResult<ApiResponse<Unit>>> DeleteBelt(
         string id, int beltRecordId, CancellationToken ct)
-        => HandleResult(await memberService.DeleteBeltAsync(id, beltRecordId, CallerId, ct));
+        => HandleResult(await memberService.DeleteBeltAsync(id, beltRecordId, CallerId, IsCoach, ct));
 }

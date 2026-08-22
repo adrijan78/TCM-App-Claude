@@ -67,15 +67,20 @@ public class TrainingService(
         int trainingId, string callerId, bool isCoach, CancellationToken ct = default)
     {
         var clubId = await trainings.GetClubIdAsync(trainingId, ct);
-        if (clubId is null)
-        {
-            return ApiResponse<TrainingDetailsDto>.NotFound("Training not found.");
-        }
 
         var caller = await userManager.FindByIdAsync(callerId);
         if (caller is null)
         {
             return ApiResponse<TrainingDetailsDto>.Forbidden();
+        }
+
+        if (clubId is null)
+        {
+            // A member gets the same answer whether the training does not exist or is not
+            // theirs, so training ids cannot be enumerated. A coach still gets a useful 404.
+            return isCoach && caller.IsCoach
+                ? ApiResponse<TrainingDetailsDto>.NotFound("Training not found.")
+                : ApiResponse<TrainingDetailsDto>.Forbidden();
         }
 
         if (isCoach && caller.IsCoach)
@@ -96,10 +101,29 @@ public class TrainingService(
         }
 
         var details = await trainings.GetDetailsAsync(trainingId, ct);
-        return details is null
-            ? ApiResponse<TrainingDetailsDto>.NotFound("Training not found.")
-            : ApiResponse<TrainingDetailsDto>.Ok(details);
+        if (details is null)
+        {
+            return ApiResponse<TrainingDetailsDto>.NotFound("Training not found.");
+        }
+
+        return ApiResponse<TrainingDetailsDto>.Ok(isCoach ? details : RedactPeers(details, callerId));
     }
+
+    /// <summary>
+    /// A member may see who else was invited (SPEC 6.6) but not their scores or absence reasons.
+    /// SPEC section 5 gives the member "views own only" for attendance and performance, and an
+    /// absence reason is free text — "hospital appointment" — about someone who may be a minor.
+    /// The coach's view is unchanged.
+    /// </summary>
+    private static TrainingDetailsDto RedactPeers(TrainingDetailsDto details, string callerId) =>
+        details with
+        {
+            Attendees = details.Attendees
+                .Select(a => a.MemberId == callerId
+                    ? a
+                    : a with { Performance = null, AbsenceReason = null })
+                .ToList()
+        };
 
     public async Task<ApiResponse<TrainingDetailsDto>> CreateAsync(
         EditTrainingDto dto, string callerId, CancellationToken ct = default)

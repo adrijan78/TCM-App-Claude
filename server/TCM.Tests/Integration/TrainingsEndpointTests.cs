@@ -254,6 +254,61 @@ public class TrainingsEndpointTests(TcmApiFactory factory) : IClassFixture<TcmAp
     }
 
     [Fact]
+    public async Task TrainingDetails_AsInvitedMember_HidesPeersScoresAndAbsenceReasons()
+    {
+        // SPEC section 5 gives the member "views own only" for attendance and performance. Seeing
+        // who else was invited is fine (6.6); seeing their scores, or a free-text absence reason
+        // like "hospital appointment", is not.
+        var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var training = await CreateTrainingAsync(
+            coach, "Peer privacy", [factory.MemberId, factory.OtherMemberId]);
+
+        // The peer is marked absent with a reason, and scored.
+        await coach.PostAsJsonAsync($"/api/trainings/{training.Id}/attendance",
+            new ReportAttendanceDto(factory.OtherMemberId, AttendanceStatus.Absent, "hospital appointment"));
+        await coach.PutAsJsonAsync(
+            $"/api/trainings/{training.Id}/attendance/{factory.OtherMemberId}/performance",
+            new SetPerformanceDto(7));
+
+        // And so is the caller, so the test proves redaction rather than emptiness.
+        await coach.PutAsJsonAsync(
+            $"/api/trainings/{training.Id}/attendance/{factory.MemberId}/performance",
+            new SetPerformanceDto(9));
+
+        var member = await ClientAsAsync(TcmApiFactory.MemberEmail);
+        var response = await member.GetAsync($"/api/trainings/{training.Id}");
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<TrainingDetailsDto>>();
+
+        var peer = Assert.Single(body!.Data!.Attendees, a => a.MemberId == factory.OtherMemberId);
+        Assert.Null(peer.Performance);
+        Assert.Null(peer.AbsenceReason);
+
+        // The member still sees who was invited, and their own score.
+        var self = Assert.Single(body.Data!.Attendees, a => a.MemberId == factory.MemberId);
+        Assert.Equal(9, self.Performance);
+
+        var raw = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("hospital appointment", raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TrainingDetails_AsCoach_StillShowsEveryScoreAndReason()
+    {
+        var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var training = await CreateTrainingAsync(
+            coach, "Coach sees all", [factory.MemberId, factory.OtherMemberId]);
+
+        await coach.PostAsJsonAsync($"/api/trainings/{training.Id}/attendance",
+            new ReportAttendanceDto(factory.OtherMemberId, AttendanceStatus.Absent, "away with family"));
+
+        var response = await coach.GetAsync($"/api/trainings/{training.Id}");
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<TrainingDetailsDto>>();
+
+        var peer = Assert.Single(body!.Data!.Attendees, a => a.MemberId == factory.OtherMemberId);
+        Assert.Equal("away with family", peer.AbsenceReason);
+    }
+
+    [Fact]
     public async Task TrainingDetails_AsUninvitedMember_Returns403()
     {
         // The invitation is the whole permission. Without a row on this training the member is

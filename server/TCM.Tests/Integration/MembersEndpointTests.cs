@@ -60,7 +60,7 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
             Role: "Member"));
 
         response.EnsureSuccessStatusCode();
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RegisteredMemberDto>>();
         return (body!.Data!.Id, email);
     }
 

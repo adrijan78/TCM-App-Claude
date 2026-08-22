@@ -29,8 +29,15 @@ public class MemberService(
     private const int MaxSearchLength = 100;
 
     public async Task<ApiResponse<IReadOnlyList<MemberDto>>> GetMembersAsync(
-        MemberFilterDto filter, string callerId, CancellationToken ct = default)
+        MemberFilterDto filter, string callerId, bool isCoach, CancellationToken ct = default)
     {
+        // Checked here as well as by the controller's role attribute. CLAUDE.md requires the
+        // decision twice, and every other slice does it in the service too.
+        if (!isCoach)
+        {
+            return ApiResponse<IReadOnlyList<MemberDto>>.Forbidden();
+        }
+
         if (filter.Search is { Length: > MaxSearchLength })
         {
             return ApiResponse<IReadOnlyList<MemberDto>>.Fail(
@@ -43,7 +50,10 @@ public class MemberService(
         }
 
         var caller = await userManager.FindByIdAsync(callerId);
-        if (caller is null)
+
+        // Fail closed on a clubless coach. Passing a null ClubId straight through would return
+        // every clubless user in the database instead of nothing.
+        if (caller?.ClubId is null)
         {
             return ApiResponse<IReadOnlyList<MemberDto>>.Forbidden();
         }
@@ -128,8 +138,10 @@ public class MemberService(
     }
 
     public async Task<ApiResponse<MemberDto>> DeactivateAsync(
-        string memberId, string callerId, CancellationToken ct = default)
+        string memberId, string callerId, bool isCoach, CancellationToken ct = default)
     {
+        if (!isCoach) return ApiResponse<MemberDto>.Forbidden();
+
         // Checked before anything is loaded: a coach who deactivates themselves cannot sign back
         // in to undo it, and there is no other coach in a 1 coach : 1 club model to do it for them.
         if (string.Equals(memberId, callerId, StringComparison.Ordinal))
@@ -137,7 +149,7 @@ public class MemberService(
             return ApiResponse<MemberDto>.Fail("You cannot deactivate your own account.");
         }
 
-        var (access, member) = await ResolveAsync(memberId, callerId, isCoach: true, ct);
+        var (access, member) = await ResolveAsync(memberId, callerId, isCoach, ct);
         if (access is not Access.Allowed || member is null)
         {
             return Refuse<MemberDto>(access);
@@ -182,15 +194,17 @@ public class MemberService(
     }
 
     public async Task<ApiResponse<MemberBeltDto>> AddBeltAsync(
-        string memberId, AddMemberBeltDto dto, string callerId, CancellationToken ct = default)
+        string memberId, AddMemberBeltDto dto, string callerId, bool isCoach, CancellationToken ct = default)
     {
+        if (!isCoach) return ApiResponse<MemberBeltDto>.Forbidden();
+
         var validation = await beltValidator.ValidateAsync(dto, ct);
         if (!validation.IsValid)
         {
             return validation.ToFailure<MemberBeltDto>();
         }
 
-        var (access, member) = await ResolveAsync(memberId, callerId, isCoach: true, ct);
+        var (access, member) = await ResolveAsync(memberId, callerId, isCoach, ct);
         if (access is not Access.Allowed || member is null)
         {
             return Refuse<MemberBeltDto>(access);
@@ -238,9 +252,11 @@ public class MemberService(
     }
 
     public async Task<ApiResponse<Unit>> DeleteBeltAsync(
-        string memberId, int beltRecordId, string callerId, CancellationToken ct = default)
+        string memberId, int beltRecordId, string callerId, bool isCoach, CancellationToken ct = default)
     {
-        var (access, member) = await ResolveAsync(memberId, callerId, isCoach: true, ct);
+        if (!isCoach) return ApiResponse<Unit>.Forbidden();
+
+        var (access, member) = await ResolveAsync(memberId, callerId, isCoach, ct);
         if (access is not Access.Allowed || member is null)
         {
             return Refuse<Unit>(access);

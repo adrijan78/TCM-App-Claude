@@ -156,7 +156,9 @@ public class NoteService(
         var subject = await notes.GetSubjectAsync(id, ct);
         if (subject is null)
         {
-            return ApiResponse.NotFound("Note not found.");
+            // A member gets the same answer whether the note does not exist or is not theirs to
+            // delete, so note ids cannot be enumerated. A coach still gets a useful 404.
+            return isCoach ? ApiResponse.NotFound("Note not found.") : ApiResponse.Forbidden();
         }
 
         if (isCoach)

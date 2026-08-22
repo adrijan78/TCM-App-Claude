@@ -14,7 +14,7 @@ public interface IMemberService
 {
     /// <summary>The coach's member list, scoped to the coach's own club (SPEC section 6.3).</summary>
     Task<ApiResponse<IReadOnlyList<MemberDto>>> GetMembersAsync(
-        MemberFilterDto filter, string callerId, CancellationToken ct = default);
+        MemberFilterDto filter, string callerId, bool isCoach, CancellationToken ct = default);
 
     /// <summary>One member. A coach may read anyone in their club; a member only themselves.</summary>
     Task<ApiResponse<MemberDto>> GetMemberAsync(
@@ -29,7 +29,7 @@ public interface IMemberService
     /// attendance, payment and note history all depend on it (SPEC section 6.3).
     /// </summary>
     Task<ApiResponse<MemberDto>> DeactivateAsync(
-        string memberId, string callerId, CancellationToken ct = default);
+        string memberId, string callerId, bool isCoach, CancellationToken ct = default);
 
     /// <summary>Belt exam history. Same ownership rule as the profile.</summary>
     Task<ApiResponse<IReadOnlyList<MemberBeltDto>>> GetBeltsAsync(
@@ -40,9 +40,9 @@ public interface IMemberService
     /// belts is flagged current.
     /// </summary>
     Task<ApiResponse<MemberBeltDto>> AddBeltAsync(
-        string memberId, AddMemberBeltDto dto, string callerId, CancellationToken ct = default);
+        string memberId, AddMemberBeltDto dto, string callerId, bool isCoach, CancellationToken ct = default);
 
     /// <summary>Coach-only. Removes a belt exam, then re-flags the latest remaining one.</summary>
     Task<ApiResponse<Unit>> DeleteBeltAsync(
-        string memberId, int beltRecordId, string callerId, CancellationToken ct = default);
+        string memberId, int beltRecordId, string callerId, bool isCoach, CancellationToken ct = default);
 }
