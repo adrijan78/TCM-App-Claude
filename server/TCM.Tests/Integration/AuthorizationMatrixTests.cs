@@ -1,9 +1,13 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TCM.Application.Common;
 using TCM.Application.Dtos.Account;
 using TCM.Application.Dtos.Common;
+using TCM.Domain.Entities;
+using TCM.Infrastructure.Persistence;
 
 namespace TCM.Tests.Integration;
 
@@ -120,6 +124,43 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
         Assert.True(body!.Success);
         Assert.Contains("Member", body.Data!.Roles);
+    }
+
+    [Fact]
+    public async Task Register_RecordsTheChosenBeltAsTheMembersCurrentBelt()
+    {
+        // Regression: the registration form asks for a belt (SPEC 6.1) and the validator checked
+        // it, but nothing ever wrote a MemberBelt row — every new member started with an empty
+        // belt history.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var belt = await db.Belts.FirstOrDefaultAsync(b => b.BeltName == "Regression Green");
+        if (belt is null)
+        {
+            belt = new Belt { BeltName = "Regression Green", Rank = 99 };
+            db.Belts.Add(belt);
+            await db.SaveChangesAsync();
+        }
+
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var email = $"belted-{Guid.NewGuid():N}@test.local";
+
+        var registered = await client.PostAsJsonAsync("/api/account/register",
+            NewMember(email) with { BeltId = belt.Id });
+        registered.EnsureSuccessStatusCode();
+
+        var created = await registered.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        var memberId = created!.Data!.Id;
+
+        var stored = await db.MemberBelts
+            .AsNoTracking()
+            .Where(mb => mb.MemberId == memberId)
+            .ToListAsync();
+
+        var current = Assert.Single(stored);
+        Assert.Equal(belt.Id, current.BeltId);
+        Assert.True(current.IsCurrentBelt);
     }
 
     [Fact]

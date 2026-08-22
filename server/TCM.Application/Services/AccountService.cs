@@ -21,6 +21,8 @@ public class AccountService(
     ITokenService tokenService,
     IEmailService emailService,
     IStripeCustomerService stripeCustomerService,
+    IRepository<Belt> belts,
+    IRepository<MemberBelt> memberBelts,
     IValidator<MemberRegisterDto> registerValidator,
     IValidator<ResetPasswordDto> resetValidator,
     IOptions<ClientSettings> clientSettings,
@@ -137,6 +139,11 @@ public class AccountService(
             await userManager.UpdateAsync(user);
         }
 
+        // The registration form asks for a belt (SPEC 6.1), so record it as the member's current
+        // one. Without this the belt is validated and then thrown away, leaving every new member
+        // with an empty belt history until a coach adds one by hand.
+        await AssignStartingBeltAsync(user, dto.BeltId, ct);
+
         await SendWelcomeEmailAsync(user, ct);
 
         logger.LogInformation("Coach {CoachId} registered member {MemberId}.", callerId, user.Id);
@@ -230,6 +237,33 @@ public class AccountService(
         var encodedEmail = Uri.EscapeDataString(email);
 
         return $"{baseUrl}/reset-password?email={encodedEmail}&token={encodedToken}";
+    }
+
+    /// <summary>
+    /// Gives a newly registered member their starting belt, flagged current. A missing or unknown
+    /// belt id is logged and skipped rather than failing the registration — the coach can add the
+    /// belt afterwards, but they should not lose the member they just created.
+    /// </summary>
+    private async Task AssignStartingBeltAsync(ApplicationUser user, int beltId, CancellationToken ct)
+    {
+        var belt = await belts.GetByIdAsync(beltId, ct);
+        if (belt is null)
+        {
+            logger.LogWarning(
+                "Member {MemberId} was registered with unknown belt id {BeltId}; no belt recorded.",
+                user.Id, beltId);
+            return;
+        }
+
+        await memberBelts.AddAsync(new MemberBelt
+        {
+            MemberId = user.Id,
+            BeltId = belt.Id,
+            DateReceived = user.StartedOn,
+            IsCurrentBelt = true
+        }, ct);
+
+        await memberBelts.SaveChangesAsync(ct);
     }
 
     private async Task SendWelcomeEmailAsync(ApplicationUser user, CancellationToken ct)

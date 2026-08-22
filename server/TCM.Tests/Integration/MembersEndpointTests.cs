@@ -82,6 +82,25 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
         return belt.Id;
     }
 
+    /// <summary>
+    /// Removes the belt a member is given at registration (SPEC 6.1: the registration form asks
+    /// for one). The belt-invariant tests below want a member holding no belts at all, so they
+    /// can exercise "the first belt recorded is forced current" through the public API.
+    /// </summary>
+    private async Task ClearBeltsAsync(string memberId)
+    {
+        var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
+
+        var history = await coach.GetAsync($"/api/members/{memberId}/belts");
+        var body = await history.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<MemberBeltDto>>>();
+
+        foreach (var record in body!.Data!)
+        {
+            var deleted = await coach.DeleteAsync($"/api/members/{memberId}/belts/{record.Id}");
+            deleted.EnsureSuccessStatusCode();
+        }
+    }
+
     private static EditMemberDto EditOf(MemberDto member) => new(
         member.FirstName,
         member.LastName,
@@ -549,9 +568,12 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<MemberBeltDto>>>();
-        var record = Assert.Single(body!.Data!);
-        Assert.Equal("History Green", record.Belt.BeltName);
+        // Two records: the belt given at registration, and the one the coach just awarded.
+        Assert.Equal(2, body!.Data!.Count);
+        var record = Assert.Single(body.Data!, b => b.Belt.BeltName == "History Green");
         Assert.True(record.IsCurrentBelt);
+        // Still exactly one current belt across the whole history (SPEC section 4).
+        Assert.Single(body.Data!, b => b.IsCurrentBelt);
     }
 
     // ---- POST /api/members/{id}/belts — coach only -----------------------------------------------
@@ -585,6 +607,7 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
     {
         var beltId = await EnsureBeltAsync("First White", 74);
         var (id, _) = await RegisterMemberAsync();
+        await ClearBeltsAsync(id);
         var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
 
         var response = await coach.PostAsJsonAsync($"/api/members/{id}/belts",
@@ -602,6 +625,7 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
         var oldBeltId = await EnsureBeltAsync("Invariant Yellow", 75);
         var newBeltId = await EnsureBeltAsync("Invariant Blue", 76);
         var (id, _) = await RegisterMemberAsync();
+        await ClearBeltsAsync(id);
         var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
 
         await coach.PostAsJsonAsync($"/api/members/{id}/belts",
@@ -704,6 +728,7 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
         var firstBeltId = await EnsureBeltAsync("Promote Yellow", 81);
         var secondBeltId = await EnsureBeltAsync("Promote Blue", 82);
         var (id, _) = await RegisterMemberAsync();
+        await ClearBeltsAsync(id);
         var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
 
         await coach.PostAsJsonAsync($"/api/members/{id}/belts",
@@ -733,6 +758,7 @@ public class MembersEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiF
         var beltId = await EnsureBeltAsync("Mismatch Red", 83);
         var (ownerId, _) = await RegisterMemberAsync();
         var (strangerId, _) = await RegisterMemberAsync();
+        await ClearBeltsAsync(ownerId);
         var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
 
         var added = await coach.PostAsJsonAsync($"/api/members/{ownerId}/belts",
