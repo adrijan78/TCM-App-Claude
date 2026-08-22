@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/server/">
+    <Project Path="server/TCM.Api/TCM.Api.csproj" />
+    <Project Path="server/TCM.Application/TCM.Application.csproj" />
+    <Project Path="server/TCM.Domain/TCM.Domain.csproj" />
+    <Project Path="server/TCM.Infrastructure/TCM.Infrastructure.csproj" />
+    <Project Path="server/TCM.Tests/TCM.Tests.csproj" />
+  </Folder>
+</Solution>
