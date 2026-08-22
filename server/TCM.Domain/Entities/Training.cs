@@ -10,7 +10,9 @@ public class Training
 {
     public int Id { get; set; }
 
-    public DateTimeOffset Date { get; set; }
+    /// <summary>UTC. DateTime rather than DateTimeOffset so EF can translate Year/Month
+    /// grouping for the dashboard chart; the club runs in a single time zone.</summary>
+    public DateTime Date { get; set; }
 
     /// <summary>Doubles as the training's title in the table and calendar views (section 6.5).</summary>
     public required string Description { get; set; }

@@ -32,10 +32,14 @@ Checked **2026-08-22** against the official .NET release index and the npm regis
 | **FluentValidation** (core only) | DataAnnotations | Validation lives in the service layer here, so the ASP.NET model-binding integration is not needed |
 | Bootstrap `bootstrap-grid` + `bootstrap-utilities` | Full Bootstrap CSS | Importing all of Bootstrap drags in button, form and typography resets that fight Angular Material for the same elements |
 
-## Three surprises worth remembering
+## Version-drift traps already hit (do not rediscover these)
 
 - **Angular 22 is zoneless** â€” there is no `zone.js` dependency. Change detection is signal-driven. Do not add `provideZoneChangeDetection`.
 - **Angular 22 tests with Vitest + jsdom**, not Karma/Jasmine. Use `vi.fn()`, not `jasmine.createSpy()`. SPEC predates this.
+- **EF Core 10 cannot translate `DateTimeOffset.Year` / `.Month` in a `GroupBy` key** — on SQL Server *or* SQLite. The dashboard's trainings-per-month chart needs exactly that, so `Training.Date`, `Attendance.Date`, `Payment.PaymentDate` and `Note.CreatedAt` are **UTC `DateTime`**, not `DateTimeOffset`. Store UTC; the club runs in one time zone.
+- **EF cannot project straight into a record's constructor from inside a `GroupBy`.** Group into an anonymous type, then map after materialising.
+- **`WebApplicationFactory` + minimal hosting:** use `builder.UseSetting(...)`, not `ConfigureAppConfiguration` — `Program.cs` reads configuration while the host is still being built, before those callbacks run.
+- **EF Core 9+ registers `IDbContextOptionsConfiguration<T>` separately.** Swapping the provider in tests means removing those descriptors too, or EF refuses to start with two providers.
 - **Swashbuckle 10 pulls Microsoft.OpenApi v2**, which moved `OpenApiInfo` and friends out of `Microsoft.OpenApi.Models` into `Microsoft.OpenApi`, replaced the `Reference = new OpenApiReference{...}` pattern with `OpenApiSecuritySchemeReference`, and made `AddSecurityRequirement` take a factory. See `Program.cs`.
 
 Superseded during Phase 0: .NET 9.0.316 was installed on this machine but is **STS in maintenance, EOL 2026-11-10**. .NET 10 LTS was installed instead. Older SDKs (5â€“9) remain side by side; `global.json` makes 10.0.400 the one this repo uses.

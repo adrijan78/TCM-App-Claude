@@ -7,6 +7,7 @@ using TCM.Domain.Entities;
 using TCM.Infrastructure.Identity;
 using TCM.Infrastructure.Integrations;
 using TCM.Infrastructure.Persistence;
+using TCM.Infrastructure.Repositories;
 
 namespace TCM.Infrastructure;
 
@@ -54,6 +55,9 @@ public static class DependencyInjection
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<ICommonRepository, CommonRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 

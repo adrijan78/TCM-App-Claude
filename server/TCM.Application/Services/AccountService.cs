@@ -1,4 +1,5 @@
 using System.Net;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,8 @@ public class AccountService(
     ITokenService tokenService,
     IEmailService emailService,
     IStripeCustomerService stripeCustomerService,
+    IValidator<MemberRegisterDto> registerValidator,
+    IValidator<ResetPasswordDto> resetValidator,
     IOptions<ClientSettings> clientSettings,
     ILogger<AccountService> logger) : IAccountService
 {
@@ -67,6 +70,12 @@ public class AccountService(
     public async Task<ApiResponse<MemberTokenDto>> RegisterAsync(
         MemberRegisterDto dto, string callerId, CancellationToken ct = default)
     {
+        var validation = await registerValidator.ValidateAsync(dto, ct);
+        if (!validation.IsValid)
+        {
+            return validation.ToFailure<MemberTokenDto>();
+        }
+
         if (!await roleManager.RoleExistsAsync(dto.Role))
         {
             return ApiResponse<MemberTokenDto>.Fail($"Unknown role '{dto.Role}'.");
@@ -164,9 +173,10 @@ public class AccountService(
 
     public async Task<ApiResponse<Unit>> ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default)
     {
-        if (dto.NewPassword != dto.ConfirmPassword)
+        var validation = await resetValidator.ValidateAsync(dto, ct);
+        if (!validation.IsValid)
         {
-            return ApiResponse.Fail("The two passwords do not match.");
+            return validation.ToFailure<Unit>();
         }
 
         var user = await userManager.FindByEmailAsync(dto.Email);

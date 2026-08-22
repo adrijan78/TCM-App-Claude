@@ -13,7 +13,8 @@ public class Note
 
     public required string Title { get; set; }
     public required string Content { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    /// <summary>UTC.</summary>
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>Author.</summary>
     public required string FromMemberId { get; set; }

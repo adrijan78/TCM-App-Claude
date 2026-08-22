@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using TCM.Application.Common;
 using TCM.Application.Dtos.Account;
+using TCM.Application.Dtos.Common;
 
 namespace TCM.Tests.Integration;
 
@@ -231,7 +232,76 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
 
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<Unit>>();
         Assert.False(body!.Success);
-        Assert.Contains("match", body.Message, StringComparison.OrdinalIgnoreCase);
+        // The envelope message is generic; the specific rule that failed is in Errors.
+        Assert.Contains(body.Errors, e => e.Contains("match", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Register_WithInvalidDetails_ReturnsValidationErrors()
+    {
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var invalid = NewMember("not-an-email") with
+        {
+            FirstName = "",
+            Height = 900m,
+            DateOfBirth = new DateOnly(2400, 1, 1)
+        };
+
+        var response = await client.PostAsJsonAsync("/api/account/register", invalid);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MemberTokenDto>>();
+        Assert.False(body!.Success);
+        Assert.NotEmpty(body.Errors);
+    }
+
+    // ---- Common slice (SPEC section 6.2) ------------------------------------------------------
+
+    [Fact]
+    public async Task Belts_Anonymously_Returns401()
+    {
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/common/belts");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ClubNumbers_AsMember_Returns200()
+    {
+        // Both roles may see their own club's dashboard numbers (SPEC section 5).
+        var client = await ClientAsAsync(TcmApiFactory.MemberEmail);
+
+        var response = await client.GetAsync("/api/common/club-numbers");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ClubNumbersInfoDto>>();
+        Assert.True(body!.Success);
+        Assert.NotNull(body.Data);
+    }
+
+    [Fact]
+    public async Task ClubNumbers_WithInvalidMonth_Returns400()
+    {
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+
+        var response = await client.GetAsync("/api/common/club-numbers?month=13");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ClubNumbers_WithNoTrainings_ReportsZeroPercentNotDivideByZero()
+    {
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+
+        var response = await client.GetAsync("/api/common/club-numbers?year=1999");
+
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ClubNumbersInfoDto>>();
+        Assert.True(body!.Success);
+        Assert.Equal(0, body.Data!.TrainingsHeld);
+        Assert.Equal(0d, body.Data.AttendancePercentage);
     }
 
     private static MemberRegisterDto NewMember(string email) => new(

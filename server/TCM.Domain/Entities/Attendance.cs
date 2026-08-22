@@ -11,7 +11,8 @@ public class Attendance
 {
     public int Id { get; set; }
 
-    public DateTimeOffset Date { get; set; }
+    /// <summary>UTC.</summary>
+    public DateTime Date { get; set; }
 
     /// <summary>Free text — in practice the reason for an absence, or a note on the session.</summary>
     public string? Description { get; set; }

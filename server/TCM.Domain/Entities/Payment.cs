@@ -12,7 +12,8 @@ public class Payment
     public ApplicationUser Member { get; set; } = null!;
 
     public bool IsPaidOnline { get; set; }
-    public DateTimeOffset PaymentDate { get; set; }
+    /// <summary>UTC.</summary>
+    public DateTime PaymentDate { get; set; }
     public DateOnly NextPaymentDate { get; set; }
 
     /// <summary>
