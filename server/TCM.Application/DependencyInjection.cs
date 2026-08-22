@@ -26,6 +26,9 @@ public static class DependencyInjection
         services.AddScoped<IPhotoService, PhotoService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
+        // Members slice (SPEC sections 6.3 and 6.4).
+        services.AddScoped<IMemberService, MemberService>();
+
         return services;
     }
 }
