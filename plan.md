@@ -19,7 +19,6 @@ A step-by-step build plan for the application described in [SPEC.md](SPEC.md), t
 | **csharp-lsp** | C# symbol resolution, references, safe renames | Phases 2–6 |
 | **typescript-lsp** | TypeScript/Angular code intelligence | Phases 7–10 |
 | **stripe** | Official Stripe plugin — `stripe-best-practices`, `stripe-docs`, `test-cards`, `explain-error`, plus the Stripe MCP server | Phase 5, Phase 9 |
-| **firebase** | Firebase MCP — inspect the storage bucket and rules for member/club photos | Phase 5 |
 | **playwright** | Browser automation MCP for end-to-end tests and screenshots | Phase 11, and any visual check |
 | **modern-web-guidance** | Current web-platform and Angular best practice, kept fresh | Phases 7–10 |
 | **frontend-design** | Production-grade UI generation that avoids generic AI aesthetics | Phases 7–10 |
@@ -27,6 +26,8 @@ A step-by-step build plan for the application described in [SPEC.md](SPEC.md), t
 | **gitkraken** | Real git/PR/issue context across providers (needs one-time auth) | Phase 1 onward |
 
 Together these add roughly 3.1k always-on tokens per session; the rest is paid only when a skill actually fires.
+
+**Removed 2026-08-22:** `firebase`. Photos are stored in SQL Server as `varbinary(max)` rather than in Firebase Storage (see *Decisions taken during the build* below), so the plugin had nothing left to do.
 
 **Deliberately not installed:** `azure-sql-developer` (17 skills, ~4.9k always-on tokens, and it steers toward a preview container image rather than the plain SQL Server the spec names — the `tcm-database` skill covers the same ground for free). `duende-skills` (IdentityServer-specific; the spec uses plain ASP.NET Identity + JWT). Add either later with `claude plugin install <name>@claude-plugins-official -s project` if a need appears.
 
@@ -40,7 +41,7 @@ The spec's section 10 also listed "Engineering" and "Design" bundles. Those name
 | **data-model-agent** | Entities, DbContext, Fluent API, migrations, seeding. **Sole owner of migrations** | Nothing during a schema change |
 | **api-feature-builder** | One backend vertical slice: DTO → repository → service → controller → DI → tests | Other instances, one domain each |
 | **angular-feature-builder** | One Angular feature module: models → service → routes → components → specs | Other instances, one module each |
-| **integrations-agent** | Stripe, Firebase Storage, Gmail SMTP | Backend slices |
+| **integrations-agent** | Stripe, database-backed photo storage, Gmail SMTP | Backend slices |
 | **qa-test-agent** | xUnit, Jasmine/Karma, Playwright | Follows a slice |
 | **security-reviewer** | Read-only audit against spec sections 5 and 7 | Gates every auth/payment change |
 
@@ -56,7 +57,7 @@ Slice ownership is what makes parallelism safe: two `api-feature-builder` instan
 | **tcm-backend-slice** | The six-step recipe for an API slice, with `ApiResponse` and authorization conventions | context7, microsoft-docs, csharp-lsp |
 | **tcm-angular-feature** | Folder layout, typed services, Material vs Bootstrap, loading/empty/error, screen-specific notes | context7, modern-web-guidance, frontend-design |
 | **tcm-stripe-payments** | Checkout session flow, server-side verification, cash payments, payment screens | stripe plugin + MCP |
-| **tcm-notifications** | The four Gmail SMTP emails and Firebase Storage photo handling | firebase MCP |
+| **tcm-notifications** | The four Gmail SMTP emails and database-backed photo handling | — |
 | **tcm-testing** | Test strategy, the role-matrix suite, commands, reporting rules | playwright, qodo |
 | **tcm-run-local** | Starting all three processes, config keys, seeded accounts, first-run failure table | playwright |
 
@@ -134,14 +135,14 @@ Each phase states its goal, the work, who does it, and what must be true before 
 
 ### Phase 5 — External integrations
 
-**Goal:** Stripe, Firebase and email working, with fakes for credential-free local runs.
+**Goal:** Stripe, photo storage and email working, with fakes so the app runs on no third-party credentials.
 
-1. `EmailService` + `GmailSettings` + `SendEmailRequest`, four HTML templates, non-fatal failure handling, `NoOpEmailService` fallback.
-2. `FirebaseStorageService` for member and club photos, writing `Photos` rows; validation on type and size; local fallback implementation.
-3. `StripeService` + `StripeController`: customer creation at registration, Checkout Session creation, **server-side verification before any `Payments` row is written**, environment-based success/cancel URLs, idempotency on session id.
+1. `EmailService` + `GmailSettings` + `SendEmailRequest`, four HTML templates, non-fatal failure handling, logging fallback when SMTP is unconfigured.
+2. `PhotoService` storing member and club photos **as bytes in the `Photos` table**; content-type and size validation; an authenticated endpoint that serves them.
+3. `StripeService` + `StripeController`: customer creation at registration, Checkout Session creation, **server-side verification before any `Payments` row is written**, environment-based success/cancel URLs, idempotency on session id — all behind a `Stripe:Enabled` flag, with a local fake active while it is off.
 
-**Agent:** `integrations-agent`. **Skills:** `tcm-stripe-payments`, `tcm-notifications`. **Plugins:** `stripe`, `firebase`.
-**Exit:** App starts with no third-party credentials configured. With test keys, a checkout session URL is returned and a verified payment writes exactly one row. Each of the four emails fires once.
+**Agent:** `integrations-agent`. **Skills:** `tcm-stripe-payments`, `tcm-notifications`. **Plugins:** `stripe`.
+**Exit:** App starts and every feature works with no third-party credentials configured. Photos round-trip through the database. With `Stripe:Enabled=true` and test keys, a checkout session URL is returned and a verified payment writes exactly one row. Each of the four emails fires once.
 
 ### Phase 6 — Backend vertical slices *(parallelizable)*
 
@@ -256,9 +257,20 @@ Phases 0–4 are strictly sequential: they set versions, layout, schema and hous
 - **Security is checked, not assumed.** Anything touching auth, roles, payments or member data goes through `security-reviewer` before it counts as finished.
 - **Nothing environment-specific in source.** Configuration only.
 
+## 4b. Decisions taken during the build
+
+| Decision | Date | Why |
+|---|---|---|
+| **Photos live in SQL Server**, not Firebase Storage | 2026-08-22 | User's call. Removes a third-party dependency and a set of credentials entirely. `Photos.Content` is `varbinary(max)`, capped by `Photos:MaxSizeBytes`. Supersedes SPEC section 2's "File storage: Firebase Storage" |
+| **Stripe deferred behind `Stripe:Enabled`** | 2026-08-22 | User's call: a working app first, real Stripe after. The flag off selects a local fake that completes the flow; on selects real Checkout. The verification rule in SPEC section 3.2 holds in both paths |
+| Timestamps are UTC `DateTime`, not `DateTimeOffset` | 2026-08-22 | EF Core 10 cannot translate `DateTimeOffset.Year`/`.Month` in a `GroupBy`, which section 6.2's chart requires |
+| No `PasswordSalt` column | 2026-08-22 | Identity's hasher embeds the salt in `PasswordHash`; a separate column would always be empty |
+| `Payments.StripeSessionId` added | 2026-08-22 | The idempotency key section 3.2 needs so a retried webhook cannot double-write a payment |
+
 ## 5. Open items
 
 - **Hosting** stays undecided by design (spec section 9). Phase 12 makes the app deployment-ready without choosing; revisit once the target is known.
 - **Charting library** — pick one in phase 7 and use it for every chart in sections 6.2 and 6.4.
 - **`gitkraken`** needs a one-time authentication before its git and PR context becomes available.
-- **Stripe, Firebase and Gmail credentials** are needed for phase 5 to be exercised for real. Development proceeds against the fake implementations until they arrive.
+- **Stripe credentials** are deferred by explicit decision. `Stripe:Enabled` is `false` with a dummy key, so the local fake carries the whole payment flow. Flip the flag and supply real test keys to switch over — no code change.
+- **Gmail app password** is still needed before real email sends; until then `LoggingEmailService` records what would have gone out.

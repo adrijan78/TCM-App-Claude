@@ -41,10 +41,11 @@ Serves on `http://localhost:4200`.
 ```
 ConnectionStrings:Default
 Jwt:Key            Jwt:Issuer      Jwt:Audience     Jwt:ExpiryMinutes
+Stripe:Enabled                     # false until real keys arrive; a local fake takes over
 Stripe:SecretKey   Stripe:MembershipPriceId
 Stripe:SuccessUrl  Stripe:CancelUrl        Stripe:WebhookSecret
 Gmail:Host  Gmail:Port  Gmail:SenderEmail  Gmail:SenderName  Gmail:AppPassword
-Firebase:Bucket    Firebase:CredentialsPath
+Photos:MaxSizeBytes                # cap on an uploaded image, stored in the database
 Client:BaseUrl                     # used to build email links
 Cors:AllowedOrigins                # the Angular origin
 Seed:CoachEmail    Seed:CoachPassword
@@ -67,6 +68,8 @@ The seeder creates one coach from `Seed:CoachEmail` / `Seed:CoachPassword`, the 
 | 401 on every API call | Interceptor not registered, or the JWT key/issuer/audience differ between issuance and validation. |
 | Angular build fails after a version bump | Check the pinned Angular version's migration guide via `context7` before changing code. |
 | Stripe redirect lands on a blank page | `Stripe:SuccessUrl` / `CancelUrl` not configured for this environment. |
+| Payment "succeeds" without touching Stripe | Expected while `Stripe:Enabled` is false — the local fake is running. Startup logs a warning saying so. |
+| Photo upload rejected as "not a supported image" | The bytes are sniffed, not the declared content type. A renamed `.txt` is refused on purpose. |
 
 ## Verifying a change end to end
 

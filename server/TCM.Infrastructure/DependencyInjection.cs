@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCM.Application.Abstractions;
+using TCM.Application.Options;
 using TCM.Domain.Entities;
 using TCM.Infrastructure.Identity;
 using TCM.Infrastructure.Integrations;
@@ -58,15 +59,53 @@ public static class DependencyInjection
 
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICommonRepository, CommonRepository>();
+        services.AddScoped<IPhotoRepository, PhotoRepository>();
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 
-        // External integrations fall back to safe stand-ins when their credentials are absent,
-        // so the app runs end to end on a developer machine with nothing configured. Phase 5
-        // swaps in the real Gmail SMTP and Stripe implementations.
-        services.AddScoped<IEmailService, LoggingEmailService>();
-        services.AddScoped<IStripeCustomerService, NoOpStripeCustomerService>();
+        AddEmail(services, configuration);
+        AddPayments(services, configuration);
 
         return services;
+    }
+
+    /// <summary>
+    /// Real SMTP when Gmail is configured, a logging stand-in otherwise, so the app runs end to
+    /// end on a developer machine with no mail credentials.
+    /// </summary>
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        var gmail = configuration.GetSection(GmailSettings.SectionName).Get<GmailSettings>() ?? new GmailSettings();
+
+        if (gmail.IsConfigured)
+        {
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
+        else
+        {
+            services.AddScoped<IEmailService, LoggingEmailService>();
+        }
+    }
+
+    /// <summary>
+    /// Stripe is deferred by decision (2026-08-22). With <c>Stripe:Enabled</c> false the local
+    /// fake keeps the whole membership-payment flow working; with it true the real Stripe
+    /// integration takes over and nothing else changes.
+    /// </summary>
+    private static void AddPayments(IServiceCollection services, IConfiguration configuration)
+    {
+        var stripe = configuration.GetSection(StripeSettings.SectionName).Get<StripeSettings>() ?? new StripeSettings();
+
+        if (stripe.Enabled)
+        {
+            services.AddScoped<ICheckoutService, StripeCheckoutService>();
+            services.AddScoped<IStripeCustomerService, StripeCustomerService>();
+        }
+        else
+        {
+            services.AddScoped<ICheckoutService, FakeCheckoutService>();
+            services.AddScoped<IStripeCustomerService, NoOpStripeCustomerService>();
+        }
     }
 }

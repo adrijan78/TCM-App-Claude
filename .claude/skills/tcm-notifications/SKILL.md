@@ -1,6 +1,6 @@
 ---
 name: tcm-notifications
-description: TCM email and file storage — Gmail SMTP EmailService with its four templated messages (registration confirmation, password reset, training invitation, note notification), and FirebaseStorageService for member and club photos. Use for any work on EmailService, GmailSettings, SendEmailRequest, FirebaseStorageService, the Photos table, or an upload/notification bug.
+description: TCM email and photo storage — Gmail SMTP EmailService with its four templated messages (registration confirmation, password reset, training invitation, note notification), and PhotoService storing member and club photos as bytes in the database. Use for any work on EmailService, GmailSettings, SendEmailRequest, PhotoService, the Photos table, or an upload/notification bug.
 ---
 
 # TCM email and storage
@@ -31,19 +31,27 @@ description: TCM email and file storage — Gmail SMTP EmailService with its fou
 
 Gmail SMTP requires an app password on an account with 2FA — a normal account password will not authenticate. Port 587 with STARTTLS. Expect rate limits; that is another reason failures must be non-fatal.
 
-## File storage — Firebase Storage
+## Photo storage — in the database
 
-`IFirebaseStorageService` / `FirebaseStorageService` handles member photos and the club logo, writing `Url` and `PublicId` into the `Photos` table (`Id`, `Url`, `PublicId`, `MemberId`).
+**Decided 2026-08-22: photos live in SQL Server, not Firebase Storage.** This supersedes SPEC section 2's "File storage: Firebase Storage" and removes that dependency and its credentials entirely.
+
+`IPhotoService` / `PhotoService` stores member photos and the club logo as bytes in the `Photos` table: `Id`, `PublicId` (a GUID), `FileName`, `ContentType`, `Content` (`varbinary(max)`), `SizeBytes`, `CreatedAt`, `MemberId`.
 
 ### Rules
 
-- Validate before upload: content type is an allowed image type, size under an explicit configured cap, and dimensions sane. Do not trust the client-supplied filename or content type alone — check the actual bytes.
-- Generate the stored object name yourself; never build a path from user input.
-- Deleting a photo removes both the storage object and the `Photos` row. If the storage delete fails, do not orphan the row silently — log and surface it.
-- Service-account credentials come from configuration or an environment variable pointing at a key file. **Never commit a key.** Add `*serviceAccount*.json` to `.gitignore` on day one.
-- Ship a local disk-backed or no-op implementation so the app runs without Firebase credentials.
-- The `firebase` MCP server is available for inspecting buckets and storage rules.
+- **Sniff the bytes, do not trust the client.** Check the actual magic numbers for the allowed image types (JPEG, PNG, WebP, GIF) rather than believing the supplied `Content-Type` or file extension.
+- Enforce `Photos:MaxSizeBytes` before reading the whole stream into memory, not after.
+- Never use the client-supplied filename as a path. It is stored for display only.
+- `PublicId` is a GUID, not the primary key, so photo URLs cannot be walked by incrementing a number.
+- **Serving requires authentication.** These are photographs of club members, some of them minors. The endpoint authorizes like any other member-scoped resource: a coach may fetch any photo in their club, a member only their own. Because an `<img src>` cannot carry an `Authorization` header, the Angular side fetches the bytes through the authenticated HTTP client and renders an object URL.
+- Set an explicit `Cache-Control: private` and an `ETag` so repeat views are cheap without the image landing in a shared cache.
+- Deleting a photo removes the row and clears any `PhotoId` / `ClubLogoId` still pointing at it.
+- **Never `Include` the `Content` column in a list query.** Project only the metadata; loading a hundred members must not drag a hundred images into memory.
+
+### The trade-off, stated plainly
+
+`varbinary(max)` keeps everything transactional and backed up with the database, at the cost of database size and of images flowing through the app on every request. That is fine at club scale — hundreds of members, one photo each. If this ever grows past a few gigabytes, the fix is object storage plus a URL column, and the `Photos` table is already shaped for that move.
 
 ## Verify
 
-Registration, password reset, training creation and note creation each produce exactly one email in the log or inbox. Photo upload writes a `Photos` row whose `Url` actually loads. A configuration with no credentials still lets the app start and every other feature work.
+Registration, password reset, training creation and note creation each produce exactly one email in the log or inbox. A photo round-trips: upload, fetch, and the bytes come back byte-identical with the right content type. An unauthenticated fetch is refused, as is a member fetching someone else's photo. A configuration with no third-party credentials still lets the app start and every feature work.

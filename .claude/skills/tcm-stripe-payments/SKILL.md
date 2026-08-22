@@ -7,6 +7,17 @@ description: The TCM membership payment flow — Stripe Checkout Session creatio
 
 Spec sections 3.2, 6.4 and 6.7. Two payment methods exist: **Online** (Stripe, initiated by the member) and **Cash** (logged by the coach).
 
+## `Stripe:Enabled` — read this first
+
+Real Stripe is deferred by decision (2026-08-22): the app must work before the keys exist.
+
+- **`Stripe:Enabled = false`** (the current state, with a dummy key): `FakeStripeService` is registered. It mints a local session id, sends the member to the client's success page, and the same verification code path records the payment. The whole membership flow is usable and demonstrable with no Stripe account.
+- **`Stripe:Enabled = true`**: the real `StripeService` is registered and everything below applies unchanged.
+
+The rule that a payment row is written **only after server-side verification** holds in both paths — the fake verifies against its own session store, it does not skip the check. Do not add a shortcut that writes a payment straight from a redirect, in either implementation.
+
+Startup logs a warning whenever the flag is off, so a deployment cannot quietly ship the fake.
+
 ## The Stripe flow
 
 1. Member clicks "Pay Membership Fee".

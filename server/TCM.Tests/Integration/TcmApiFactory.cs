@@ -52,7 +52,16 @@ public class TcmApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             ["Jwt:Audience"] = "TCM.Client.Tests",
             ["Jwt:ExpiryMinutes"] = "60",
             ["Client:BaseUrl"] = "http://localhost:4200",
-            ["Cors:AllowedOrigins:0"] = "http://localhost:4200"
+            ["Cors:AllowedOrigins:0"] = "http://localhost:4200",
+
+            // Stripe stays disabled, so FakeCheckoutService carries the payment flow. The URLs
+            // still have to be real ones — the fake builds its redirect from SuccessUrl.
+            ["Stripe:Enabled"] = "false",
+            ["Stripe:SuccessUrl"] = "http://localhost:4200/successful-payment",
+            ["Stripe:CancelUrl"] = "http://localhost:4200/failed-payment",
+            ["Stripe:MembershipDays"] = "30",
+
+            ["Photos:MaxSizeBytes"] = "2097152"
         };
 
         foreach (var (key, value) in settings)

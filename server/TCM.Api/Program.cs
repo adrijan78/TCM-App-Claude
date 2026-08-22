@@ -109,6 +109,32 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// ---- Integration status ----------------------------------------------------------------------
+// Stripe is deferred by decision (2026-08-22). Say so loudly at every start, so a deployment
+// cannot quietly ship the local fake believing it is taking real payments.
+var stripeSettings = builder.Configuration.GetSection(StripeSettings.SectionName).Get<StripeSettings>() ?? new StripeSettings();
+var gmailSettings = builder.Configuration.GetSection(GmailSettings.SectionName).Get<GmailSettings>() ?? new GmailSettings();
+
+if (!stripeSettings.Enabled)
+{
+    app.Logger.LogWarning(
+        "Stripe:Enabled is FALSE. Membership payments run through a LOCAL FAKE and no money moves. " +
+        "Set Stripe:Enabled=true with real keys before taking real payments.");
+
+    if (app.Environment.IsProduction())
+    {
+        throw new InvalidOperationException(
+            "Refusing to start in Production with Stripe:Enabled=false — that would accept " +
+            "membership payments that never charge anyone.");
+    }
+}
+
+if (!gmailSettings.IsConfigured)
+{
+    app.Logger.LogWarning(
+        "Gmail SMTP is not configured. Emails are written to the log instead of being sent.");
+}
+
 // ---- Seed ----------------------------------------------------------------------------------
 // Idempotent, so it is safe on every start. Development only: production databases are brought
 // up with a migration script instead (see plan.md phase 12).

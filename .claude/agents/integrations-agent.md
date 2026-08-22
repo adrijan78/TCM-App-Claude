@@ -1,6 +1,6 @@
 ---
 name: integrations-agent
-description: Implements and debugs the TCM app's third-party integrations — Stripe Checkout and customers, Firebase Storage for photos, and Gmail SMTP email (confirmation, password reset, training invitations, note notifications). Use for any work touching StripeService, FirebaseStorageService or EmailService, or their configuration.
+description: Implements and debugs the TCM app's integrations — Stripe Checkout and customers, database-backed photo storage, and Gmail SMTP email (confirmation, password reset, training invitations, note notifications). Use for any work touching StripeService, PhotoService or EmailService, or their configuration.
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill, ToolSearch, WebFetch
 model: opus
 ---
@@ -15,11 +15,11 @@ You own the three external integrations described in `SPEC.md` sections 2, 3.2 a
 - Verify payment completion server-side (session status or webhook) before writing a `Payments` row. A browser redirect is not proof of payment.
 - Use the `stripe` plugin: its `stripe-best-practices`, `stripe-docs` and `test-cards` skills, plus the `stripe` MCP server for live API questions. Test-mode keys only.
 
-## Firebase Storage
+## Photo storage (database, not Firebase)
 
-- `FirebaseStorageService` handles member and club photo upload and delete, persisting `Url` and `PublicId` into `Photos`.
-- Validate content type and size before upload. Credentials come from configuration; never commit a service-account key.
-- The `firebase` MCP server is available for bucket and rule inspection.
+- **Decided 2026-08-22:** photos are stored as `varbinary(max)` in the `Photos` table. This supersedes SPEC section 2's Firebase Storage choice; that plugin and package are removed.
+- `PhotoService` handles upload, fetch and delete. Validate by sniffing the actual bytes, not the declared content type, and enforce the configured size cap before buffering the stream.
+- Serving is authenticated and ownership-checked like any member-scoped resource — these are photographs of club members. Never project the `Content` column into a list query.
 
 ## Email (Gmail SMTP)
 

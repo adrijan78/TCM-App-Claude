@@ -30,6 +30,8 @@ description: Orientation for the Taekwondo Club Management (TCM) app — where e
 - **No public self-registration.** A coach registers members; that is the only way in.
 - **Nothing environment-specific is hardcoded** — no hosts, URLs, connection strings or keys in source. Stripe success/cancel URLs are configuration. Hosting is deliberately undecided, so keep everything environment-agnostic.
 - **Card data never touches our code.** Stripe-hosted Checkout only.
+- **Photos are stored in SQL Server**, not Firebase Storage (decided 2026-08-22). This supersedes SPEC section 2's file-storage row.
+- **Stripe is deferred behind `Stripe:Enabled`** (decided 2026-08-22). Off by default with a dummy key; a local fake carries the payment flow until real keys arrive.
 
 ## Repo layout
 
@@ -55,7 +57,6 @@ e2e/                  Playwright
 | Exact API surface of the pinned .NET / EF Core / Angular / Stripe version | `context7` MCP — resolve the library, then fetch docs |
 | ASP.NET Core, EF Core, Identity, SQL Server guidance | `microsoft-docs` skill / `microsoft-learn` MCP |
 | Stripe Checkout, test cards, error meanings | `stripe` plugin skills + `stripe` MCP |
-| Firebase Storage buckets and rules | `firebase` MCP |
 | Current Angular / web platform best practice | `modern-web-guidance` skill |
 | A screen that needs real visual judgement | `frontend-design` skill |
 | Browser-driven E2E and screenshots | `playwright` MCP |
