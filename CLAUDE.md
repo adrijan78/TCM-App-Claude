@@ -100,4 +100,19 @@ See the `tcm-run-local` skill for the full configuration key list, seeded accoun
 
 ## Build status
 
-Phases 0–3 are complete: versions pinned, solution scaffolded, schema applied, and authentication/authorization working with 16 passing endpoint tests. Next is Phase 4 (core plumbing + the reference slice). See [plan.md](plan.md).
+Phases 0–6 are complete. `dotnet build` is clean and **170 endpoint tests pass**.
+
+- **0–1** versions pinned (.NET 10 LTS, Angular 22), solution scaffolded, client builds.
+- **2** schema from SPEC §4 applied, seeder idempotent.
+- **3** auth: login, coach-only registration, password reset, JWT validation.
+- **4** generic repository, FluentValidation at the service boundary, Common reference slice.
+- **5** photos in the database, Stripe behind `Stripe:Enabled`, Gmail SMTP sender.
+- **6** all four backend domains — Members, Trainings/Attendance, Payments, Notes — built in parallel, merged, and audited. Five security findings from that audit are fixed.
+
+Next is Phase 7 (Angular foundation). See [plan.md](plan.md).
+
+### Known items carried forward to Phase 12
+
+- Deleting an online payment frees its Stripe session id, so the id could be replayed to recreate it. Needs a voided-session record (a migration).
+- Deactivating a member does not revoke an already-issued JWT; they stay in until it expires. Needs security-stamp validation.
+- Two email deep links assume Angular routes that do not exist yet: `/dashboard/trainings/{id}` and `/dashboard/members/{id}`. Reconcile in Phase 7.
