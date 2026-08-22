@@ -96,4 +96,4 @@ See the `tcm-run-local` skill for the full configuration key list, seeded accoun
 
 ## Build status
 
-Phases 0–2 are complete: versions pinned, solution scaffolded, schema from SPEC section 4 applied to SQL Server, seeder verified idempotent. Next is Phase 3 (auth). See [plan.md](plan.md).
+Phases 0–3 are complete: versions pinned, solution scaffolded, schema applied, and authentication/authorization working with 16 passing endpoint tests. Next is Phase 4 (core plumbing + the reference slice). See [plan.md](plan.md).

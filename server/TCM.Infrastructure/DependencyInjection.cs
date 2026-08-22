@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TCM.Application.Abstractions;
 using TCM.Domain.Entities;
+using TCM.Infrastructure.Identity;
+using TCM.Infrastructure.Integrations;
 using TCM.Infrastructure.Persistence;
 
 namespace TCM.Infrastructure;
@@ -51,6 +54,14 @@ public static class DependencyInjection
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+        services.AddScoped<ITokenService, TokenService>();
+
+        // External integrations fall back to safe stand-ins when their credentials are absent,
+        // so the app runs end to end on a developer machine with nothing configured. Phase 5
+        // swaps in the real Gmail SMTP and Stripe implementations.
+        services.AddScoped<IEmailService, LoggingEmailService>();
+        services.AddScoped<IStripeCustomerService, NoOpStripeCustomerService>();
 
         return services;
     }

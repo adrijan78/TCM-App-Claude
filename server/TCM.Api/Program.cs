@@ -1,8 +1,14 @@
 // Microsoft.OpenApi v2 (pulled in by Swashbuckle 10) moved these types out of the old
 // Microsoft.OpenApi.Models namespace and up into Microsoft.OpenApi.
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
 using TCM.Api.Middleware;
+using TCM.Application;
+using TCM.Application.Options;
 using TCM.Infrastructure;
 using TCM.Infrastructure.Persistence.Seed;
 
@@ -17,8 +23,41 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 // ---- MVC -----------------------------------------------------------------------------------
 builder.Services.AddControllers();
 
-// ---- Infrastructure (database, repositories, external services) -----------------------------
+// ---- Application + Infrastructure -----------------------------------------------------------
+builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// ---- Authentication ---------------------------------------------------------------------------
+var jwt = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
+
+if (string.IsNullOrWhiteSpace(jwt.Key) || Encoding.UTF8.GetByteCount(jwt.Key) < JwtSettings.MinimumKeyLengthBytes)
+{
+    throw new InvalidOperationException(
+        $"Jwt:Key must be configured and at least {JwtSettings.MinimumKeyLengthBytes} bytes long. " +
+        "Set Jwt:Key, Jwt:Issuer and Jwt:Audience with 'dotnet user-secrets set' or environment variables.");
+}
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateLifetime = true,
+            // Default is five minutes, which would keep expired tokens working well past expiry.
+            ClockSkew = TimeSpan.FromMinutes(1),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // ---- CORS ----------------------------------------------------------------------------------
 // Origins come from configuration so no deployment environment is baked into the code (SPEC section 9).
@@ -91,6 +130,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors(ClientCorsPolicy);
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
