@@ -1,3 +1,4 @@
+using TCM.Application.Dtos.Payments;
 using TCM.Domain.Entities;
 
 namespace TCM.Application.Abstractions;
@@ -23,4 +24,21 @@ public interface IPaymentRepository : IRepository<Payment>
     /// unique-violation handling stays inside the data layer.
     /// </remarks>
     Task<(bool Added, Payment Payment)> AddIfSessionUnusedAsync(Payment payment, CancellationToken ct = default);
+
+    /// <summary>
+    /// The club-wide payments table of SPEC section 6.7, with its four filters applied in SQL.
+    /// The club id comes from the caller's own account, never from the request.
+    /// </summary>
+    Task<IReadOnlyList<PaymentsDto>> GetClubHistoryAsync(
+        int clubId, int? year, int? month, string? memberId, bool? isPaidOnline, CancellationToken ct = default);
+
+    /// <summary>One member's payment history, newest first (SPEC section 6.4).</summary>
+    Task<IReadOnlyList<PaymentsDto>> GetMemberHistoryAsync(string memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The payment with this id, but only if its member belongs to the given club. Tracked,
+    /// because the one caller is the delete path. Null means "not there, or not yours" — the
+    /// service must not distinguish the two to the client.
+    /// </summary>
+    Task<Payment?> FindInClubAsync(int id, int clubId, CancellationToken ct = default);
 }
