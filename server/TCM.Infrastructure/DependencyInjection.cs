@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<ICommonRepository, CommonRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<INoteRepository, NoteRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 
