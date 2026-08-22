@@ -28,6 +28,9 @@ public static class DependencyInjection
         services.AddScoped<INoteService, NoteService>();
         services.AddScoped<ITrainingService, TrainingService>();
 
+        // Members slice (SPEC sections 6.3 and 6.4).
+        services.AddScoped<IMemberService, MemberService>();
+
         return services;
     }
 }

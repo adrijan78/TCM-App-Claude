@@ -64,6 +64,9 @@ public static class DependencyInjection
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<ITrainingRepository, TrainingRepository>();
 
+        // Members slice (SPEC sections 6.3 and 6.4).
+        services.AddScoped<IMemberRepository, MemberRepository>();
+
         services.AddScoped<ITokenService, TokenService>();
 
         AddEmail(services, configuration);
