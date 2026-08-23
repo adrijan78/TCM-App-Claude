@@ -50,6 +50,23 @@ public class TrainingsEndpointTests(TcmApiFactory factory) : IClassFixture<TcmAp
         return body.Data!;
     }
 
+    [Fact]
+    public async Task TrainingDate_IsSerialisedAsAnExplicitUtcInstant()
+    {
+        // The columns are UTC datetime2, which EF hands back as Unspecified — and the default
+        // serializer then writes "2026-03-04T18:00:00" with no zone at all. A browser reads that
+        // as local time, so every session showed an hour or two early and the dashboard countdown
+        // was short by the same amount. The Z is the fix; this is what keeps it.
+        var coach = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var created = await CreateTrainingAsync(coach, "UTC wire format", [],
+            date: new DateTime(2026, 3, 4, 18, 0, 0, DateTimeKind.Utc));
+
+        var response = await coach.GetAsync($"/api/trainings/{created.Id}");
+        var raw = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("2026-03-04T18:00:00.000Z", raw, StringComparison.Ordinal);
+    }
+
     // ---- GET /api/trainings (coach only) --------------------------------------------------------
 
     [Fact]

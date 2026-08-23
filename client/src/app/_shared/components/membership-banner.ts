@@ -21,7 +21,7 @@ import { MEMBERSHIP_PRESENTATION } from '../status-presentation';
   selector: 'app-membership-banner',
   imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
-    <div class="banner" [class]="'banner-' + state().tone">
+    <div class="banner tcm-railed" [class]="'banner-' + state().tone" [style.--tcm-rail]="rail()">
       <span class="banner-badge">
         <mat-icon aria-hidden="true">{{ state().icon }}</mat-icon>
       </span>
@@ -50,6 +50,7 @@ import { MEMBERSHIP_PRESENTATION } from '../status-presentation';
       align-items: center;
       gap: var(--tcm-space-4);
       padding: var(--tcm-space-4);
+      padding-inline-start: var(--tcm-space-5);
       border-radius: var(--tcm-radius-lg);
       background: var(--banner-container);
       color: var(--banner-on-container);
@@ -75,7 +76,7 @@ import { MEMBERSHIP_PRESENTATION } from '../status-presentation';
       place-items: center;
       inline-size: 2.5rem;
       block-size: 2.5rem;
-      border-radius: 50%;
+      border-radius: var(--tcm-radius-md);
       background: color-mix(in srgb, currentColor 12%, transparent);
     }
 
@@ -95,10 +96,16 @@ import { MEMBERSHIP_PRESENTATION } from '../status-presentation';
       opacity: 0.85;
     }
 
+    /*
+      The button belongs to the banner, not to the page: it borrows the banner's own pair of
+      colours rather than dropping the app's primary onto a green field.
+    */
     button {
       display: inline-flex;
       align-items: center;
       gap: var(--tcm-space-2);
+      --mat-sys-primary: var(--banner-on-container);
+      --mat-sys-on-primary: var(--banner-container);
     }
   `,
 })
@@ -121,6 +128,8 @@ export class MembershipBanner {
     if ((status.daysUntilDue ?? 0) <= 7) return MEMBERSHIP_PRESENTATION.due;
     return MEMBERSHIP_PRESENTATION.paid;
   });
+
+  protected readonly rail = computed(() => `var(--tcm-${this.state().tone})`);
 
   protected readonly headline = computed(() => {
     const status = this.membership();

@@ -1,4 +1,5 @@
 <app-page-header
+  eyebrow="Club · Dashboard"
   [title]="'Welcome back, ' + firstName()"
   [subtitle]="
     isCoach() ? 'How the club is doing, and what is coming up.' : 'How your club is doing.'
@@ -58,16 +59,23 @@
   </div>
 } @else if (numbers(); as stats) {
   <div class="cd-stats tcm-stagger">
-    <app-stat-card icon="group" label="Members" [value]="stats.totalMembers" />
-    <app-stat-card icon="how_to_reg" label="Active" [value]="stats.activeMembers" />
+    <app-stat-card icon="group" label="Members" tone="info" [value]="stats.totalMembers" />
+    <app-stat-card
+      icon="how_to_reg"
+      label="Active"
+      tone="positive"
+      [value]="stats.activeMembers"
+    />
     <app-stat-card
       icon="sports_martial_arts"
       label="Trainings held"
+      tone="quiet"
       [value]="stats.trainingsHeld"
     />
     <app-stat-card
       icon="insights"
       label="Attendance"
+      tone="caution"
       [value]="stats.attendancePercentage.toFixed(0)"
       suffix="%"
     />
@@ -75,7 +83,7 @@
 
   <div class="cd-grid">
     <figure class="cd-chart tcm-panel">
-      <figcaption>Trainings per month</figcaption>
+      <figcaption class="tcm-eyebrow">Trainings per month</figcaption>
 
       @if (stats.trainingsPerMonth.length === 0) {
         <app-state-panel
@@ -195,7 +203,11 @@
           <ul class="cd-upcoming-list">
             @for (training of upcoming(); track training.id) {
               <li>
-                <a class="cd-upcoming-item" [routerLink]="['/dashboard/trainings', training.id]">
+                <a
+                  class="cd-upcoming-item tcm-railed"
+                  [style.--tcm-rail]="'var(--tcm-' + statusOf(training).tone + ')'"
+                  [routerLink]="['/dashboard/trainings', training.id]"
+                >
                   <span class="cd-upcoming-date">
                     <span class="cd-upcoming-day">{{ training.date | date: 'd' }}</span>
                     <span class="cd-upcoming-month">{{ training.date | date: 'MMM' }}</span>

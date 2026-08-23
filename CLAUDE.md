@@ -19,6 +19,7 @@ Checked **2026-08-22** against the official .NET release index and the npm regis
 | Angular Material + CDK | 22.1.3 | Tracks the Angular major |
 | TypeScript | 6.0.2 | What Angular 22 pins |
 | Bootstrap | 5.3.8 | Spec requires Bootstrap 5, **grid and utilities only** |
+| IBM Plex Sans / Sans Condensed / Mono | Google Fonts | The "Dojang" type system — body, display, and the data voice |
 | Chart.js | 4.5.1 | Charts for SPEC §6.2 and §6.4. Used directly, not via an Angular wrapper — wrappers pin a peer range against the Angular major and lag a new release |
 | Docker | 27.3.1 | |
 
@@ -103,7 +104,7 @@ See the `tcm-run-local` skill for the full configuration key list, seeded accoun
 
 ## Build status
 
-Phases 0–9 are complete. `dotnet build` is clean, **170 endpoint tests pass**, `ng build` is clean and **97 client tests pass**.
+Phases 0–10 are complete. `dotnet build` is clean, **172 endpoint tests pass**, `ng build` is clean and **108 client tests pass**.
 
 - **0–1** versions pinned (.NET 10 LTS, Angular 22), solution scaffolded, client builds.
 - **2** schema from SPEC §4 applied, seeder idempotent.
@@ -118,7 +119,16 @@ Phases 0–9 are complete. `dotnet build` is clean, **170 endpoint tests pass**,
 
 - **9** every screen of SPEC 6.2–6.8: the club dashboard, the member list and three-tab profile, trainings as table *and* calendar, training details with attendance and scoring, club-wide payments, and club-wide notes — plus the five typed services, `MemberAvatar`, `NoteCard`, `MembershipBanner`, `StatCard` and the Stripe return landing. Reviewed against real seeded data at 1440 and 390 in both themes, with no console errors and no 4xx/5xx.
 
-Next is Phase 10 (the member experience), then 11 and 12. See [plan.md](plan.md).
+- **10** the member experience: `MemberHome` at `/dashboard` (chosen by `coachHomeMatch`, not by a redirect), `profileAccessGuard` on `/dashboard/members/:id`, and the member's own notes panel on a training. Verified against the running API — every coach-only endpoint answers 403 to a member token, every own-data endpoint answers 200, and every forced coach-only URL lands back on `/dashboard`.
+
+Next is Phase 11 (the test suite), then 12. See [plan.md](plan.md).
+
+### Conventions set in Phase 10
+
+- **Timestamps go out with an explicit `Z`.** The UTC columns are plain `datetime2`, so EF returns `DateTimeKind.Unspecified` and the default serializer wrote `"2026-08-25T17:55:49"` — which JavaScript parses as *local* time. Every training displayed an hour or two early and the countdown was short by the same amount. `TCM.Api/Serialization/UtcDateTimeConverter.cs` fixes it for every endpoint at once; a test in `TrainingsEndpointTests` pins the wire format.
+- **One path, two home pages.** `/dashboard` has two route definitions and `coachHomeMatch` (a `CanMatchFn`) picks. A member never downloads the club dashboard's chunk, and the member home is the fallback, so a session whose role cannot be read still shows only that member's own data.
+- **A route a member may reach with the *wrong id* gets a guard, not a 403 page.** `profileAccessGuard` sends a member who reaches for another id back to their own profile. Filling a rendered screen with 403s reads as a broken page rather than as a boundary — and the note-notification deep link has to keep working.
+- **Verify the role matrix against the running API, not only the test factory.** Phase 10's exit criteria were checked with a real member token: every coach-only endpoint 403, every own-data endpoint 200, and every forced coach-only URL redirected to `/dashboard`.
 
 ### Client conventions set in Phase 9
 
@@ -129,11 +139,23 @@ Next is Phase 10 (the member experience), then 11 and 12. See [plan.md](plan.md)
 - **Material's `mat-button-toggle-group` draws its own selection checkmark.** Add `hideSingleSelectionIndicator` when the buttons already carry icons.
 - **Each profile tab fetches only when first opened.** A coach checking a belt history should not pay for three charts and a payment history.
 
-### The design system (Phase 8b)
+### The visual identity — "Dojang" (2026-08-23)
+
+The look is built from the subject rather than from Material's defaults. Three ideas carry it, and everything else is restraint.
+
+- **The chrome is ink, in both themes.** The toolbar and nav rail are `--tcm-ink` with a 1px gold hairline; the working surface between them is always the bright one. It is the app's silhouette from across a room, and it is why the app no longer reads as "an Angular app with a blue tint". `--tcm-on-ink` / `--tcm-on-ink-muted` are the only foregrounds allowed on it, and the app-wide focus ring is re-pointed to gold inside the chrome, where navy would vanish.
+- **The belt rail is the signature.** `--tcm-rail` on anything carrying `.tcm-panel` or `.tcm-railed` draws a 3px spine down its leading edge, and that spine is **never decoration** — it is rank or state. A member's row is their belt; a session row is its status; a note is its priority; an avatar wears a belt ring at every size. Colour thereby becomes structure, and a coach can scan forty rows without reading a word. `_shared/belt-colour.ts` is the one place a belt name becomes a colour.
+- **Type is one family in three voices.** IBM Plex Sans for body and controls, Plex Sans Condensed for titles and figures (`.tcm-figure`), Plex Mono for the *data voice* — eyebrows (`.tcm-eyebrow`), table headers, status chips, date blocks. The rule that keeps it coherent: **mono is for what is read off a record, not for what is written as a sentence.** Section headings stay in the display face.
+- **Gold is rationed.** The toolbar hairline, the active nav spine, the mark, the page-header eyebrow marker, and one primary action per screen (`.tcm-accent-button`, which repoints `--mat-sys-primary` for that element only). If a fourth gold thing appears on a screen, one of them is wrong.
+- **A gold button is not a Material token override.** Material 22's buttons read the M3 *system* variables directly; `--mdc-filled-button-container-color` and friends no longer exist. Scope `--mat-sys-primary` / `--mat-sys-on-primary` to the element instead — the membership banner does the same to make its button belong to the banner.
+- **Table rails go on the first cell, not the row.** A `<tr>` will not paint an inset box-shadow under `border-collapse: collapse`, and a background gradient on the row is inherited by every cell — which drew a coloured line between every column. Every first cell reserves a transparent 3px border; railed rows colour it.
+- **`light-dark()` takes colours, not values.** Wrapping a whole shadow in it makes the declaration invalid and the browser drops it silently — which is why every panel in the app rendered flat from Phase 8b until this pass. Switch the *colour* inside the shadow (`--tcm-shadow-colour`), never the shadow itself.
+
+### The design system (Phase 8b, extended)
 
 - **`src/styles/_tokens.scss` is the only place a colour, radius, spacing step, duration or shadow is declared.** A component reaches for the variable. A hex code or a bare `rem` inside a component means the token is missing — add it there instead.
 - **Never write a second palette for dark mode.** Colours are `light-dark()` pairs resolved against `color-scheme` on `<html>`, which `ThemeService` owns. Material's own system variables already work this way, so one property switches everything.
-- **`npm run check:contrast`** parses the *compiled* stylesheet and measures every pair against WCAG AA in both themes. Run it after touching a colour. It is what caught the Okabe-Ito chart palette failing at ~2.2:1 on white.
+- **`npm run check:contrast`** parses the *compiled* stylesheet and measures every pair against WCAG AA in both themes. Run it after touching a colour. It is what caught the Okabe-Ito chart palette failing at ~2.2:1 on white. The chrome pairs (`on-ink`/`ink`, `on-gold`/`gold`, `gold`/`ink`) are in it too; a card outline against the page deliberately is not, and the script says why.
 - **State is never colour alone.** `<app-status-chip>` requires an icon, and `_shared/status-presentation.ts` holds the one mapping from each domain enum to its tone and glyph. Add a state there, once.
 - **`<app-chart>` themes itself.** It merges `baseChartOptions()`, assigns series colours from the shared palette, and rebuilds on a theme change — so callers pass labels and numbers, not colours.
 - **Motion is CSS only** (Material 22 has no `@angular/animations`); route transitions come from `withViewTransitions()`. Everything is disabled under `prefers-reduced-motion` in `_motion.scss`.
@@ -153,4 +175,4 @@ Next is Phase 10 (the member experience), then 11 and 12. See [plan.md](plan.md)
 
 - Deleting an online payment frees its Stripe session id, so the id could be replayed to recreate it. Needs a voided-session record (a migration).
 - Deactivating a member does not revoke an already-issued JWT; they stay in until it expires. Needs security-stamp validation.
-- Two email deep links assume Angular routes that do not exist yet: `/dashboard/trainings/{id}` and `/dashboard/members/{id}`. Reconcile in Phase 7.
+- ~~Two email deep links assume Angular routes that do not exist yet~~ — settled: `/dashboard/trainings/{id}` and `/dashboard/members/{id}` exist, and Phase 10 confirmed both open for the member the email was sent to.

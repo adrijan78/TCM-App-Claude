@@ -11,7 +11,7 @@
   </button>
 
   <a class="shell-brand" routerLink="/dashboard">
-    <app-brand-mark [size]="26" />
+    <app-brand-mark [size]="26" tone="chrome" />
     <span class="shell-brand-name">Taekwondo Club</span>
   </a>
 
@@ -33,11 +33,13 @@
 
   <button mat-button [matMenuTriggerFor]="accountMenu" class="shell-account">
     <!--
-      Initials, not a photo. Member photos live behind an authenticated endpoint that an
-      `img src` cannot reach, so showing one needs `PhotoService` — which arrives with the
-      member profile in phase 9. The avatar is sized and positioned for it now.
+      Initials rather than the photo: the photo endpoint is authenticated, and a second
+      fetch on every page for a 32px square in the toolbar is not worth it. The belt is,
+      though — it is the one thing about you the club counts, so it rings the square.
     -->
-    <span class="shell-avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="shell-avatar" [style.--shell-avatar-belt]="beltColour()" aria-hidden="true">{{
+      initials()
+    }}</span>
     <span class="shell-account-name">{{ fullName() }}</span>
     <mat-icon iconPositionEnd class="shell-account-caret">arrow_drop_down</mat-icon>
   </button>
@@ -97,6 +99,7 @@
         <div class="shell-nav-cta">
           <a
             mat-flat-button
+            class="tcm-accent-button"
             routerLink="/dashboard/register-member"
             [matTooltip]="showLabels() ? '' : 'Register a member'"
             matTooltipPosition="right"

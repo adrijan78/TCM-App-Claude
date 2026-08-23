@@ -13,9 +13,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { TrainingService } from '../../_services/training.service';
 import { MemberService } from '../../_services/member.service';
+import { NoteService } from '../../_services/note.service';
 import { AuthService } from '../../_services/auth.service';
 import { apiErrorMessage } from '../../_services/unwrap';
 import { TrainingAttendee, TrainingDetails } from '../../_models/training.model';
+import { Note } from '../../_models/note.model';
 import { AttendanceStatus } from '../../_models/enums';
 import {
   ATTENDANCE_STATUS_PRESENTATION,
@@ -24,6 +26,7 @@ import {
 } from '../../_shared/status-presentation';
 import { ConfirmDialog, ConfirmDialogData } from '../../_shared/components/confirm-dialog';
 import { MemberAvatar } from '../../_shared/components/member-avatar';
+import { NoteCard } from '../../_shared/components/note-card';
 import { PageHeader } from '../../_shared/components/page-header';
 import { StatePanel } from '../../_shared/components/state-panel';
 import { StatusChip } from '../../_shared/components/status-chip';
@@ -58,6 +61,7 @@ import { StatusChip } from '../../_shared/components/status-chip';
     StatePanel,
     StatusChip,
     MemberAvatar,
+    NoteCard,
   ],
   templateUrl: './training-details.html',
   styleUrl: './training-details.scss',
@@ -65,6 +69,7 @@ import { StatusChip } from '../../_shared/components/status-chip';
 export class TrainingDetailsScreen {
   private readonly trainings = inject(TrainingService);
   private readonly members = inject(MemberService);
+  private readonly notes = inject(NoteService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -108,11 +113,36 @@ export class TrainingDetailsScreen {
     return scored.reduce((sum, a) => sum + (a.performance ?? 0), 0) / scored.length;
   });
 
+  // --- Notes for this session (SPEC 6.6) -----------------------------------------------------
+  //
+  // A member's own notes about the session they just took part in. It is deliberately not
+  // shown to a coach: for them "the member" here is ambiguous, and they already write a
+  // session note per row from the attendance table.
+  protected readonly sessionNotes = signal<Note[]>([]);
+  protected readonly notesLoading = signal(false);
+  protected readonly notesError = signal<string | null>(null);
+
+  /** SPEC 6.6 asks for search. One member's notes for one session is a short list, so it
+   * filters what is already loaded rather than making a round trip per keystroke. */
+  protected readonly noteFilter = signal('');
+
+  protected readonly visibleNotes = computed(() => {
+    const term = this.noteFilter().trim().toLowerCase();
+    const notes = this.sessionNotes();
+
+    return term ? notes.filter((note) => note.title.toLowerCase().includes(term)) : notes;
+  });
+
   constructor() {
     // `id` is a signal input, so it is not readable until after construction.
     effect(() => {
       const id = this.id();
-      untracked(() => this.load());
+
+      untracked(() => {
+        this.load();
+        this.loadNotes();
+      });
+
       void id;
     });
   }
@@ -129,6 +159,25 @@ export class TrainingDetailsScreen {
       error: (error: unknown) => {
         this.loading.set(false);
         this.error.set(apiErrorMessage(error, 'This training could not be opened.'));
+      },
+    });
+  }
+
+  protected loadNotes(): void {
+    // Coach-only screens do not have one member in mind; see the panel's comment above.
+    if (this.isCoach()) return;
+
+    this.notesLoading.set(true);
+    this.notesError.set(null);
+
+    this.notes.getForTraining(this.id(), this.myId()).subscribe({
+      next: (notes) => {
+        this.sessionNotes.set(notes);
+        this.notesLoading.set(false);
+      },
+      error: (error: unknown) => {
+        this.notesLoading.set(false);
+        this.notesError.set(apiErrorMessage(error, 'Your notes for this session did not load.'));
       },
     });
   }
@@ -247,7 +296,64 @@ export class TrainingDetailsScreen {
 
     if (created) {
       this.snackBar.open('Note added.', 'Dismiss', { duration: 4000 });
+      this.loadNotes();
     }
+  }
+
+  /**
+   * A member writing a note about themselves for this session (SPEC section 5, "notes about
+   * self"). The recipient is fixed to the caller — the dialog never offers a picker here, and
+   * the server refuses a note addressed to anyone else anyway.
+   */
+  protected async addOwnNote(): Promise<void> {
+    const me = this.attendees().find((a) => a.memberId === this.myId());
+    if (!me) return;
+
+    const { NoteFormDialog } = await import('../notes/note-form-dialog');
+
+    const created = await this.dialog
+      .open(NoteFormDialog, {
+        data: {
+          toMember: { id: me.memberId, fullName: `${me.firstName} ${me.lastName}` },
+          trainingId: this.id(),
+        },
+      })
+      .afterClosed()
+      .toPromise();
+
+    if (created) {
+      this.sessionNotes.update((notes) => [created, ...notes]);
+      this.snackBar.open('Note added.', 'Dismiss', { duration: 4000 });
+    }
+  }
+
+  /** A member may delete only what they wrote; the server enforces the same rule. */
+  protected canDeleteNote(note: Note): boolean {
+    return note.fromMemberId === this.myId();
+  }
+
+  protected removeNote(note: Note): void {
+    const data: ConfirmDialogData = {
+      title: 'Delete this note?',
+      message: `"${note.title}" will be removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    };
+
+    this.dialog
+      .open(ConfirmDialog, { data })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed !== true) return;
+
+        this.notes.delete(note.id).subscribe({
+          next: () => {
+            this.sessionNotes.update((notes) => notes.filter((row) => row.id !== note.id));
+            this.snackBar.open('Note deleted.', 'Dismiss', { duration: 4000 });
+          },
+          error: (error: unknown) => this.reportFailure(error, 'The note could not be deleted.'),
+        });
+      });
   }
 
   protected remove(): void {

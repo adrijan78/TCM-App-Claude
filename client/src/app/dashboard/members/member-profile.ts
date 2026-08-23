@@ -33,6 +33,7 @@ import {
 } from '../../_shared/status-presentation';
 import { chartColour, doughnutDefaults, lineDefaults, toneColour } from '../../_shared/chart-theme';
 import { ChartComponent } from '../../_shared/components/chart';
+import { beltColour } from '../../_shared/belt-colour';
 import { ConfirmDialog, ConfirmDialogData } from '../../_shared/components/confirm-dialog';
 import { MemberAvatar } from '../../_shared/components/member-avatar';
 import { MembershipBanner } from '../../_shared/components/membership-banner';
@@ -523,6 +524,13 @@ export class MemberProfile {
           },
         });
       });
+  }
+
+  /** The rail on the profile head and on each belt exam: the belt itself. */
+  protected readonly beltRail = computed(() => beltColour(this.member()?.currentBelt?.beltName));
+
+  protected beltRailFor(beltName: string): string {
+    return beltColour(beltName);
   }
 
   /** A member may delete only their own notes; a coach may delete any in their club. */

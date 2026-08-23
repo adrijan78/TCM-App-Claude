@@ -61,11 +61,21 @@ const TEXT = [
   ['mat-sys-on-surface-variant', 'mat-sys-surface'],
   ['mat-sys-on-primary-container', 'mat-sys-primary-container'],
   ['mat-sys-primary', 'mat-sys-surface'],
+  // The chrome. It is ink in both themes, so both halves of every pair have to hold up
+  // whichever way the toggle is set.
+  ['tcm-on-ink', 'tcm-ink'],
+  ['tcm-on-ink-muted', 'tcm-ink'],
+  ['tcm-on-gold', 'tcm-gold'],
 ];
 
 const NON_TEXT = [
   ...RAMPS.map((r) => [`tcm-${r}`, 'mat-sys-surface']),
   ...Array.from({ length: 8 }, (_, i) => [`tcm-chart-${i + 1}`, 'mat-sys-surface']),
+  // The gold marks on ink: the toolbar hairline, the active nav spine, the mark itself.
+  ['tcm-gold', 'tcm-ink'],
+  // Deliberately *not* checked: panel border against the page. WCAG 1.4.11 covers the parts
+  // of a control you need to see to use it, not the outline of a card — and holding a card
+  // edge to 3:1 would draw a box round everything on the page.
 ];
 
 let failures = 0;

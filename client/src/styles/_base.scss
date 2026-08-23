@@ -27,12 +27,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-// Headings come from the brand family (see mat.theme in styles.scss). Condensed and tight,
-// so a page title reads as a title even at small sizes.
+// Headings come from the brand family (see mat.theme in styles.scss). Condensed, tight and
+// a shade heavier than Material's default, so a title reads as a title at any size.
 h1,
 h2,
 h3 {
-  letter-spacing: 0.01em;
+  font-family: var(--tcm-font-display);
+  font-weight: 600;
+  letter-spacing: -0.005em;
   text-wrap: balance;
 }
 
@@ -66,12 +68,46 @@ a {
 }
 
 /// A raised panel: cards, form sections, table wrappers.
+///
+/// The inset shadow is the belt rail (see `--tcm-rail` in _tokens.scss) — transparent until
+/// the panel has a state worth encoding. It is drawn as an inset shadow rather than a border
+/// or a pseudo-element so it costs no layout, survives the border radius, and cannot clip a
+/// table scrolling inside the panel.
 .tcm-panel {
   padding: var(--tcm-space-5);
   border: 1px solid var(--tcm-panel-border);
   border-radius: var(--tcm-radius-lg);
   background: var(--tcm-panel-bg);
-  box-shadow: var(--tcm-shadow-1);
+  box-shadow:
+    inset var(--tcm-rail-width) 0 0 0 var(--tcm-rail),
+    var(--tcm-shadow-1);
+}
+
+/// The same rail on something that is not a panel — a list row, a table row, a banner.
+.tcm-railed {
+  box-shadow: inset var(--tcm-rail-width) 0 0 0 var(--tcm-rail);
+}
+
+/// The data voice: a short mono label above a title, over a table, or beside a figure.
+/// It marks the things that are read off a record rather than written as a sentence.
+.tcm-eyebrow {
+  display: block;
+  font-family: var(--tcm-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/// A figure meant to be read at a glance: stat cards, scores, counts.
+.tcm-figure {
+  font-family: var(--tcm-font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 /// Vertical rhythm between the blocks of a page.

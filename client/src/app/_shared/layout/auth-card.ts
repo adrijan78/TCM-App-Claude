@@ -17,7 +17,7 @@ import { BrandMark } from '../components/brand-mark';
     <div class="auth-page">
       <section class="auth-brand" aria-hidden="true">
         <div class="auth-brand-head">
-          <app-brand-mark [size]="44" />
+          <app-brand-mark [size]="44" tone="chrome" />
           <p class="auth-brand-name">Taekwondo Club</p>
         </div>
 
@@ -31,6 +31,16 @@ import { BrandMark } from '../components/brand-mark';
             </li>
           }
         </ul>
+
+        <!--
+          The grading ladder, white through black. It is the club's whole progression in one
+          line, and it is the only ornament on the page.
+        -->
+        <div class="auth-belts">
+          @for (belt of belts; track belt) {
+            <span class="auth-belt" [style.background]="belt"></span>
+          }
+        </div>
       </section>
 
       <main class="auth-panel">
@@ -64,21 +74,20 @@ import { BrandMark } from '../components/brand-mark';
       }
     }
 
+    /*
+      The same ink as the app's chrome, so signing in and being signed in are recognisably
+      the same place. The gold hairline down the inside edge is the one the toolbar carries.
+    */
     .auth-brand {
       display: none;
       flex-direction: column;
       justify-content: center;
       gap: var(--tcm-space-5);
       padding: var(--tcm-space-8) var(--tcm-space-7);
-      color: var(--mat-sys-on-primary-container);
-      /* Two stops off the same hue: enough depth to read as a panel, not a poster. */
-      background:
-        radial-gradient(
-          80% 60% at 15% 10%,
-          color-mix(in srgb, var(--mat-sys-tertiary-container) 55%, transparent),
-          transparent 70%
-        ),
-        var(--mat-sys-primary-container);
+      color: var(--tcm-on-ink);
+      background: var(--tcm-ink);
+      /* The same gold seam the toolbar carries, on the one page that has no toolbar. */
+      border-inline-end: 2px solid var(--tcm-gold-hairline);
 
       @media (min-width: 992px) {
         display: flex;
@@ -93,9 +102,10 @@ import { BrandMark } from '../components/brand-mark';
 
     .auth-brand-name {
       margin: 0;
-      font: var(--mat-sys-headline-medium);
+      font-family: var(--tcm-font-display);
+      font-size: 1.75rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
     }
 
@@ -113,7 +123,7 @@ import { BrandMark } from '../components/brand-mark';
       display: grid;
       gap: var(--tcm-space-3);
       font: var(--mat-sys-body-medium);
-      opacity: 0.85;
+      color: var(--tcm-on-ink-muted);
 
       li {
         display: flex;
@@ -128,6 +138,21 @@ import { BrandMark } from '../components/brand-mark';
       }
     }
 
+    .auth-belts {
+      display: flex;
+      gap: 3px;
+      margin-block-start: var(--tcm-space-4);
+    }
+
+    .auth-belt {
+      block-size: 0.5rem;
+      inline-size: 2.25rem;
+      border-radius: 1px;
+      /* This panel is ink in both themes, so the ring is a fixed light one — the themed
+         token would hide the black belt against the wall. */
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 35%);
+    }
+
     .auth-panel {
       display: grid;
       place-items: center;
@@ -136,6 +161,11 @@ import { BrandMark } from '../components/brand-mark';
 
     .auth-card {
       inline-size: min(26rem, 100%);
+      padding: var(--tcm-space-6);
+      border: 1px solid var(--tcm-panel-border);
+      border-radius: var(--tcm-radius-lg);
+      background: var(--tcm-panel-bg);
+      box-shadow: var(--tcm-shadow-2);
     }
 
     .auth-card-mark {
@@ -155,6 +185,8 @@ import { BrandMark } from '../components/brand-mark';
     .auth-title {
       margin: 0 0 var(--tcm-space-1);
       font: var(--mat-sys-headline-medium);
+      font-family: var(--tcm-font-display);
+      font-weight: 600;
       color: var(--mat-sys-on-surface);
     }
 
@@ -169,6 +201,16 @@ import { BrandMark } from '../components/brand-mark';
 export class AuthCard {
   readonly title = input.required<string>();
   readonly subtitle = input('');
+
+  /** White through black: the grading ladder, drawn from the same tokens as every swatch. */
+  protected readonly belts = [
+    'var(--tcm-belt-white)',
+    'var(--tcm-belt-yellow)',
+    'var(--tcm-belt-green)',
+    'var(--tcm-belt-blue)',
+    'var(--tcm-belt-red)',
+    'var(--tcm-belt-black)',
+  ];
 
   protected readonly points = [
     { icon: 'event_available', label: 'Trainings, attendance and invitations' },

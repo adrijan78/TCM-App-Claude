@@ -243,6 +243,26 @@ public class NotesEndpointTests(TcmApiFactory factory) : IClassFixture<TcmApiFac
         Assert.Equal("Sparring session", notes[0].TrainingDescription);
     }
 
+    [Fact]
+    public async Task TrainingNotes_AMemberWritesOneAboutThemselves_AndReadsItBack()
+    {
+        // The round trip the member's "Your notes for this session" panel makes (SPEC 6.6):
+        // write a note about yourself against a training, then list that training's notes.
+        var trainingId = await CreateTrainingAsync("Own-note session");
+        var member = await ClientAsAsync(TcmApiFactory.MemberEmail);
+
+        var created = await CreateNoteAsync(
+            member, factory.MemberId, "PANEL my own reminder", NotePriority.Low, trainingId);
+
+        Assert.Equal(factory.MemberId, created.FromMemberId);
+        Assert.Equal(trainingId, created.TrainingId);
+
+        var response = await member.GetAsync($"/api/notes/training/{trainingId}/member/{factory.MemberId}");
+        var notes = await ReadNotesAsync(response);
+
+        Assert.Contains(notes, note => note.Id == created.Id);
+    }
+
     // ---- POST /api/notes (SPEC sections 5 and 6.8) ----------------------------------------------
 
     [Fact]

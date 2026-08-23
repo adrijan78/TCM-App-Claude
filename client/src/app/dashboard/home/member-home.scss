@@ -1,0 +1,268 @@
+/* ---- Identity strip ------------------------------------------------------------------------ */
+
+.mh-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--tcm-space-4);
+  margin-block-end: var(--tcm-space-5);
+  padding: var(--tcm-space-4);
+}
+
+.mh-identity-text {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.mh-identity-name {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.mh-identity-meta {
+  margin: var(--tcm-space-1) 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+/* ---- Stat cards ---------------------------------------------------------------------------- */
+
+.mh-stats {
+  display: grid;
+  gap: var(--tcm-space-4);
+  margin-block-end: var(--tcm-space-5);
+  /* Two up on a phone: the rail and the mono label give each card enough identity to
+     survive the narrower column, and four stacked cards is a lot of scrolling before the
+     page says anything. */
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+}
+
+/* ---- Membership ---------------------------------------------------------------------------- */
+
+.mh-membership {
+  margin-block-end: var(--tcm-space-5);
+}
+
+/* ---- Layout -------------------------------------------------------------------------------- */
+
+.mh-grid {
+  display: grid;
+  gap: var(--tcm-space-4);
+  align-items: start;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 992px) {
+    /* The lists carry the page; the chart and notes are the supporting column. */
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.mh-main,
+.mh-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-4);
+  min-inline-size: 0;
+}
+
+.mh-next,
+.mh-upcoming,
+.mh-recent,
+.mh-notes {
+  padding: var(--tcm-space-5);
+}
+
+.mh-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tcm-space-3);
+  margin-block-end: var(--tcm-space-3);
+}
+
+.mh-section-title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.mh-section-link {
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-large);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---- Next session -------------------------------------------------------------------------- */
+
+.mh-next-name {
+  display: inline-block;
+  font: var(--mat-sys-title-small);
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.mh-next-when {
+  margin: var(--tcm-space-1) 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.mh-countdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-3);
+  margin-block: var(--tcm-space-4);
+}
+
+.mh-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tcm-space-1);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+
+  strong {
+    font-family: var(--tcm-font-display);
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.mh-next-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}
+
+/* ---- Session lists ------------------------------------------------------------------------- */
+
+.mh-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mh-item {
+  display: flex;
+  align-items: center;
+  gap: var(--tcm-space-3);
+  padding: var(--tcm-space-2);
+  /* Room for the rail, so the spine never sits under the date block. */
+  padding-inline-start: var(--tcm-space-3);
+  border-radius: var(--tcm-radius-md);
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-low);
+  }
+}
+
+/* An unanswered invitation is the one row on this page that wants acting on. */
+.mh-item-due {
+  background: var(--tcm-caution-container);
+  color: var(--tcm-on-caution-container);
+
+  &:hover {
+    background: var(--tcm-caution-container);
+    filter: brightness(0.97);
+  }
+}
+
+.mh-date {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.75rem;
+  padding-block: var(--tcm-space-1);
+  border-radius: var(--tcm-radius-sm);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.mh-date-day {
+  font-family: var(--tcm-font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mh-date-month {
+  font-family: var(--tcm-font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.mh-item-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.mh-item-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mh-item-meta {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.mh-item-due .mh-item-meta,
+.mh-item-due .mh-date-month {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.mh-respond {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-1);
+  flex: none;
+  font: var(--mat-sys-label-large);
+
+  mat-icon {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    font-size: 1.125rem;
+  }
+}
+
+/* ---- Chart and notes ------------------------------------------------------------------------ */
+
+.mh-chart {
+  margin: 0;
+  padding: var(--tcm-space-5);
+  border: 1px solid var(--tcm-panel-border);
+  border-radius: var(--tcm-radius-lg);
+  background: var(--tcm-panel-bg);
+  box-shadow: var(--tcm-shadow-1);
+}
+
+.mh-chart figcaption {
+  margin-block-end: var(--tcm-space-3);
+}
+
+.mh-chart-box {
+  block-size: 15rem;
+}
+
+.mh-note-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-3);
+  margin-block-end: var(--tcm-space-3);
+}

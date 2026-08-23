@@ -1,0 +1,330 @@
+<app-page-header
+  eyebrow="My club · Home"
+  [title]="'Welcome back, ' + firstName()"
+  subtitle="Your trainings, your membership and your notes."
+>
+  <a mat-stroked-button routerLink="/dashboard/profile">
+    <mat-icon aria-hidden="true">person</mat-icon>
+    <span>My profile</span>
+  </a>
+</app-page-header>
+
+<!-- ---- Who you are ------------------------------------------------------------------------ -->
+<section class="mh-identity tcm-panel" [style.--tcm-rail]="beltRail()">
+  <app-member-avatar
+    [firstName]="member()?.firstName ?? firstName()"
+    [lastName]="member()?.lastName ?? ''"
+    [photoPublicId]="member()?.photoPublicId ?? null"
+    [beltName]="member()?.currentBelt?.beltName ?? null"
+    [size]="56"
+  />
+
+  <div class="mh-identity-text">
+    <p class="mh-identity-name">{{ member()?.firstName ?? firstName() }} {{ member()?.lastName }}</p>
+    @if (member(); as me) {
+      <p class="mh-identity-meta">Member since {{ me.startedOn | date: 'MMMM y' }}</p>
+    }
+  </div>
+
+  @if (member()?.currentBelt; as belt) {
+    <app-belt-swatch [beltName]="belt.beltName" />
+  }
+</section>
+
+<!-- ---- The four numbers that matter to a member -------------------------------------------- -->
+<div class="mh-stats tcm-stagger">
+  <app-stat-card
+    icon="insights"
+    label="Attendance"
+    tone="info"
+    [value]="attendancePercent()"
+    suffix="%"
+  />
+  <app-stat-card
+    icon="how_to_reg"
+    label="Sessions attended"
+    tone="positive"
+    [value]="presentCount()"
+  />
+  <app-stat-card
+    icon="mark_email_unread"
+    label="Awaiting your reply"
+    [tone]="awaiting().length > 0 ? 'caution' : 'quiet'"
+    [value]="awaiting().length"
+  />
+  <app-stat-card
+    icon="star_rate"
+    label="Average score"
+    tone="quiet"
+    [value]="averageScore()"
+    suffix="/10"
+  />
+</div>
+
+<!-- ---- Membership (SPEC 6.4, and the online payment of SPEC 3.2) ---------------------------- -->
+<section class="mh-membership">
+  @if (historyLoading() || historyError()) {
+    <div class="tcm-panel">
+      <app-state-panel
+        [loading]="historyLoading()"
+        [error]="historyError()"
+        loadingMessage="Loading your membership…"
+        errorTitle="Your membership could not be loaded"
+        (retry)="loadMembership()"
+      />
+    </div>
+  } @else if (history(); as record) {
+    <!-- `canPay` is always true here: this page only ever shows the signed-in member. -->
+    <app-membership-banner
+      [membership]="record.membership"
+      [canPay]="true"
+      (paid)="loadMembership()"
+    />
+  }
+</section>
+
+<div class="mh-grid">
+  <!-- ---- Main column ----------------------------------------------------------------------- -->
+  <div class="mh-main">
+    @if (summaryLoading() || summaryError()) {
+      <div class="tcm-panel">
+        <app-state-panel
+          [loading]="summaryLoading()"
+          [error]="summaryError()"
+          [skeleton]="true"
+          [skeletonRows]="4"
+          loadingMessage="Loading your trainings…"
+          errorTitle="Your trainings could not be loaded"
+          (retry)="loadSummary()"
+        />
+      </div>
+    } @else {
+      @if (nextSession(); as next) {
+        <section class="mh-next tcm-panel" [style.--tcm-rail]="railFor(next)">
+          <h2 class="mh-section-title">Next session</h2>
+
+          <a class="mh-next-name" [routerLink]="['/dashboard/trainings', next.trainingId]">
+            {{ next.description }}
+          </a>
+          <p class="mh-next-when">
+            {{ next.date | date: 'EEEE d MMMM' }} at {{ next.date | date: 'HH:mm' }}
+          </p>
+
+          @if (countdown(); as left) {
+            <div class="mh-countdown" role="timer">
+              @if (left.days > 0) {
+                <span class="mh-count"
+                  ><strong>{{ left.days }}</strong> {{ left.days === 1 ? 'day' : 'days' }}</span
+                >
+              }
+              <span class="mh-count"
+                ><strong>{{ left.hours }}</strong> {{ left.hours === 1 ? 'hour' : 'hours' }}</span
+              >
+              @if (left.days === 0) {
+                <span class="mh-count"
+                  ><strong>{{ left.minutes }}</strong> min</span
+                >
+              }
+            </div>
+          }
+
+          @if (needsReply(next)) {
+            <a
+              mat-flat-button
+              class="mh-next-cta tcm-accent-button"
+              [routerLink]="['/dashboard/trainings', next.trainingId]"
+            >
+              <mat-icon aria-hidden="true">event_available</mat-icon>
+              <span>Say whether you are coming</span>
+            </a>
+          } @else {
+            <app-status-chip
+              [label]="attendanceOf(next).label"
+              [tone]="attendanceOf(next).tone"
+              [icon]="attendanceOf(next).icon"
+            />
+          }
+        </section>
+      }
+
+      <!-- ---- Upcoming (SPEC 6.6: a member reports attendance for what they are invited to) -->
+      <section class="mh-upcoming tcm-panel">
+        <header class="mh-section-head">
+          <h2 class="mh-section-title">Coming up</h2>
+          @if (awaiting().length > 0) {
+            <app-status-chip
+              [label]="awaiting().length + ' to answer'"
+              tone="caution"
+              icon="mail_outline"
+            />
+          }
+        </header>
+
+        @if (upcoming().length === 0) {
+          <app-state-panel
+            emptyTitle="Nothing scheduled for you"
+            emptyMessage="When your coach invites you to a session it appears here, with a link to say whether you are coming."
+            emptyIcon="event_note"
+          />
+        } @else {
+          <ul class="mh-list">
+            @for (training of upcoming(); track training.trainingId) {
+              <li>
+                <a
+                  class="mh-item tcm-railed"
+                  [class.mh-item-due]="needsReply(training)"
+                  [style.--tcm-rail]="railFor(training)"
+                  [routerLink]="['/dashboard/trainings', training.trainingId]"
+                >
+                  <span class="mh-date">
+                    <span class="mh-date-day">{{ training.date | date: 'd' }}</span>
+                    <span class="mh-date-month">{{ training.date | date: 'MMM' }}</span>
+                  </span>
+
+                  <span class="mh-item-text">
+                    <span class="mh-item-name">{{ training.description }}</span>
+                    <span class="mh-item-meta">
+                      {{ training.date | date: 'HH:mm' }} · {{ typeOf(training).label }}
+                    </span>
+                  </span>
+
+                  @if (notGoingAhead(training)) {
+                    <app-status-chip
+                      [label]="trainingStatusOf(training).label"
+                      [tone]="trainingStatusOf(training).tone"
+                      [icon]="trainingStatusOf(training).icon"
+                    />
+                  } @else if (needsReply(training)) {
+                    <span class="mh-respond">
+                      <mat-icon aria-hidden="true">edit_calendar</mat-icon>
+                      <span>Respond</span>
+                    </span>
+                  } @else {
+                    <app-status-chip
+                      [label]="attendanceOf(training).label"
+                      [tone]="attendanceOf(training).tone"
+                      [icon]="attendanceOf(training).icon"
+                    />
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- ---- Recent sessions and how they went ------------------------------------------- -->
+      <section class="mh-recent tcm-panel">
+        <header class="mh-section-head">
+          <h2 class="mh-section-title">Recent sessions</h2>
+          <a class="mh-section-link" routerLink="/dashboard/profile">Full history</a>
+        </header>
+
+        @if (recent().length === 0) {
+          <app-state-panel
+            emptyTitle="No sessions yet"
+            emptyMessage="Once you have been to a training, it shows up here with your score."
+            emptyIcon="sports_martial_arts"
+          />
+        } @else {
+          <ul class="mh-list">
+            @for (training of recent(); track training.trainingId) {
+              <li>
+                <a
+                  class="mh-item tcm-railed"
+                  [style.--tcm-rail]="'var(--tcm-' + attendanceOf(training).tone + ')'"
+                  [routerLink]="['/dashboard/trainings', training.trainingId]"
+                >
+                  <span class="mh-date">
+                    <span class="mh-date-day">{{ training.date | date: 'd' }}</span>
+                    <span class="mh-date-month">{{ training.date | date: 'MMM' }}</span>
+                  </span>
+
+                  <span class="mh-item-text">
+                    <span class="mh-item-name">{{ training.description }}</span>
+                    <span class="mh-item-meta">
+                      @if (training.performance !== null) {
+                        Scored {{ training.performance }}/10
+                      } @else if (training.absenceReason) {
+                        {{ training.absenceReason }}
+                      } @else {
+                        {{ typeOf(training).label }}
+                      }
+                    </span>
+                  </span>
+
+                  <app-status-chip
+                    [label]="attendanceOf(training).label"
+                    [tone]="attendanceOf(training).tone"
+                    [icon]="attendanceOf(training).icon"
+                  />
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+
+  <!-- ---- Side column ------------------------------------------------------------------------ -->
+  <div class="mh-side">
+    <figure class="mh-chart tcm-panel">
+      <figcaption class="tcm-eyebrow">Your attendance</figcaption>
+
+      @if (summaryLoading()) {
+        <app-state-panel [loading]="true" loadingMessage="Loading…" />
+      } @else if ((summary()?.invitedCount ?? 0) === 0) {
+        <app-state-panel
+          emptyTitle="Nothing to chart"
+          emptyMessage="Your attendance appears here once you have been invited to a session."
+          emptyIcon="donut_large"
+        />
+      } @else {
+        <div class="mh-chart-box">
+          <app-chart
+            type="doughnut"
+            [data]="splitChart()"
+            [options]="doughnutOptions"
+            [ariaLabel]="splitChartLabel()"
+          />
+        </div>
+      }
+    </figure>
+
+    <section class="mh-notes tcm-panel">
+      <header class="mh-section-head">
+        <h2 class="mh-section-title">Notes for you</h2>
+        <a class="mh-section-link" routerLink="/dashboard/profile">All notes</a>
+      </header>
+
+      @if (notesLoading() || notesError() || previewNotes().length === 0) {
+        <app-state-panel
+          [loading]="notesLoading()"
+          [error]="notesError()"
+          [skeleton]="true"
+          [skeletonRows]="2"
+          skeletonVariant="card"
+          loadingMessage="Loading your notes…"
+          errorTitle="Your notes could not be loaded"
+          emptyTitle="No notes yet"
+          emptyMessage="Notes your coach writes about your progress appear here, most important first."
+          emptyIcon="sticky_note_2"
+          (retry)="loadNotes()"
+        />
+      } @else {
+        <div class="mh-note-list">
+          @for (note of previewNotes(); track note.id) {
+            <app-note-card [note]="note" [showRecipient]="false" [canDelete]="false" />
+          }
+        </div>
+
+        @if (memberNotes().length > previewNotes().length) {
+          <a class="mh-section-link" routerLink="/dashboard/profile">
+            {{ memberNotes().length - previewNotes().length }} more in your profile
+          </a>
+        }
+      }
+    </section>
+  </div>
+</div>

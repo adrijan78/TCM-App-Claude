@@ -64,6 +64,16 @@ export function toneColour(tone: 'positive' | 'caution' | 'critical' | 'info' | 
  * options = { ...baseChartOptions(), scales: { y: { beginAtZero: true } } };
  * ```
  */
+/**
+ * The chart's own type. Read off the document rather than repeated as a literal, so the
+ * charts change face with the rest of the app — Chart.js needs a real font stack, not a
+ * `var()`.
+ */
+function fontFamily(): string {
+  const family = getComputedStyle(document.body).fontFamily;
+  return family || 'system-ui, sans-serif';
+}
+
 export function baseChartOptions(): ChartOptions {
   const ink = token('--mat-sys-on-surface', '#1c1b1f');
   const muted = token('--mat-sys-on-surface-variant', '#49454f');
@@ -74,7 +84,7 @@ export function baseChartOptions(): ChartOptions {
     responsive: true,
     maintainAspectRatio: false,
     // The canvas already carries an aria-label; the legend and tooltip are for sighted users.
-    font: { family: 'Roboto, sans-serif' },
+    font: { family: fontFamily() },
     layout: { padding: 4 },
     plugins: {
       legend: {

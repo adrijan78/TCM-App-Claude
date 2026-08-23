@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
 using TCM.Api.Middleware;
+using TCM.Api.Serialization;
 using TCM.Application;
 using TCM.Application.Options;
 using TCM.Infrastructure;
@@ -21,7 +22,11 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext());
 
 // ---- MVC -----------------------------------------------------------------------------------
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    // Timestamps go out with an explicit Z. Without it EF's Unspecified kind reaches the browser
+    // as a naive string, which JavaScript reads as local time — see UtcDateTimeConverter.
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter()));
 
 // ---- Application + Infrastructure -----------------------------------------------------------
 builder.Services.AddApplication(builder.Configuration);

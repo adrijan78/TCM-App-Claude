@@ -10,6 +10,7 @@
   </div>
 } @else if (training(); as session) {
   <app-page-header
+    [eyebrow]="isCoach() ? 'Trainings · Session' : 'My club · Session'"
     [title]="session.description"
     [subtitle]="(session.date | date: 'EEEE d MMMM y') + ' at ' + (session.date | date: 'HH:mm')"
   >
@@ -77,7 +78,11 @@
     <div class="tcm-panel">
       <app-state-panel
         emptyTitle="Nobody was invited"
-        emptyMessage="Edit the session to invite members. Everyone you add gets an invitation email."
+        [emptyMessage]="
+          isCoach()
+            ? 'Edit the session to invite members. Everyone you add gets an invitation email.'
+            : 'Nobody has been invited to this session yet.'
+        "
         emptyIcon="group_off"
         [emptyActionLabel]="isCoach() ? 'Invite members' : ''"
         emptyActionIcon="person_add"
@@ -213,9 +218,69 @@
           }
 
           <tr mat-header-row *matHeaderRowDef="columns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: columns()"
+            class="tcm-railed"
+            [style.--tcm-rail]="'var(--tcm-' + statusOf(row).tone + ')'"
+          ></tr>
         </table>
       </div>
     </div>
+  }
+
+  <!-- ---- Your notes for this session (SPEC 6.6) ------------------------------------------- -->
+  <!-- Member-side only: a coach writes a session note per row from the table above. -->
+  @if (!isCoach()) {
+    <section class="tcm-panel td-notes">
+      <header class="td-notes-head">
+        <h2 class="td-section-title">Your notes for this session</h2>
+
+        <button mat-stroked-button (click)="addOwnNote()">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          <span>Write a note</span>
+        </button>
+      </header>
+
+      @if (sessionNotes().length > 3) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="td-note-search">
+          <mat-label>Search by title</mat-label>
+          <input
+            matInput
+            type="search"
+            [ngModel]="noteFilter()"
+            (ngModelChange)="noteFilter.set($event)"
+          />
+          <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+        </mat-form-field>
+      }
+
+      @if (notesLoading() || notesError() || visibleNotes().length === 0) {
+        <app-state-panel
+          [loading]="notesLoading()"
+          [error]="notesError()"
+          [skeleton]="true"
+          [skeletonRows]="2"
+          skeletonVariant="card"
+          loadingMessage="Loading your notes…"
+          errorTitle="Your notes did not load"
+          [emptyTitle]="noteFilter() ? 'Nothing matches that' : 'No notes for this session'"
+          emptyMessage="Notes about this session — yours or your coach's — appear here."
+          emptyIcon="sticky_note_2"
+          (retry)="loadNotes()"
+        />
+      } @else {
+        <div class="td-note-list">
+          @for (note of visibleNotes(); track note.id) {
+            <app-note-card
+              [note]="note"
+              [showRecipient]="false"
+              [canDelete]="canDeleteNote(note)"
+              (remove)="removeNote($event)"
+            />
+          }
+        </div>
+      }
+    </section>
   }
 }

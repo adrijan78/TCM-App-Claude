@@ -31,17 +31,19 @@ html {
       // Regenerate with:
       //   ng generate @angular/material:theme-color --primary-color=… --tertiary-color=…
       color: (primary: tcm-palette.$primary-palette, tertiary: tcm-palette.$tertiary-palette),
-      // The M3 brand/plain split. Headlines and display sizes take the condensed brand face,
-      // which gives a page title real presence; body copy and labels stay in Roboto, which is
-      // the better read at 14px. Both are loaded in index.html.
+      // The M3 brand/plain split, both cuts of IBM Plex (see index.html). Titles take the
+      // condensed cut, which gives a page title presence without shouting; body copy and
+      // controls take the regular one, whose flared stems and open apertures hold up at
+      // 14px far better than a neutral grotesque.
       typography: (
           brand-family: (
-            'Barlow Condensed',
-            'Roboto',
+            'IBM Plex Sans Condensed',
+            'IBM Plex Sans',
             sans-serif,
           ),
           plain-family: (
-            Roboto,
+            'IBM Plex Sans',
+            system-ui,
             sans-serif,
           )
         ),

@@ -9,7 +9,11 @@
     />
   </div>
 } @else if (member(); as person) {
-  <app-page-header [title]="person.firstName + ' ' + person.lastName" [subtitle]="person.email">
+  <app-page-header
+    [eyebrow]="isSelf() ? 'My club · My profile' : 'Members · Profile'"
+    [title]="person.firstName + ' ' + person.lastName"
+    [subtitle]="person.email"
+  >
     @if (isCoach()) {
       <a mat-stroked-button routerLink="/dashboard/members">
         <mat-icon aria-hidden="true">arrow_back</mat-icon>
@@ -32,13 +36,14 @@
     }
   </app-page-header>
 
-  <section class="prof-head tcm-panel">
+  <section class="prof-head tcm-panel" [style.--tcm-rail]="beltRail()">
     <div class="prof-identity">
       <div class="prof-photo">
         <app-member-avatar
           [firstName]="person.firstName"
           [lastName]="person.lastName"
           [photoPublicId]="person.photoPublicId"
+          [beltName]="person.currentBelt?.beltName ?? null"
           [size]="88"
         />
 
@@ -130,15 +135,29 @@
           </div>
         } @else if (summary(); as stats) {
           <div class="prof-stats tcm-stagger">
-            <app-stat-card label="Invitations" [value]="stats.invitedCount" />
-            <app-stat-card label="Attended" [value]="stats.presentCount" />
+            <app-stat-card
+              label="Invitations"
+              tone="info"
+              icon="mail"
+              [value]="stats.invitedCount"
+            />
+            <app-stat-card
+              label="Attended"
+              tone="positive"
+              icon="how_to_reg"
+              [value]="stats.presentCount"
+            />
             <app-stat-card
               label="Attendance rate"
+              tone="caution"
+              icon="insights"
               [value]="stats.attendancePercentage | number: '1.0-0'"
               suffix="%"
             />
             <app-stat-card
               label="Average score"
+              tone="quiet"
+              icon="star_rate"
               [value]="averagePerformance() | number: '1.1-1'"
               suffix="/10"
             />
@@ -155,7 +174,7 @@
           } @else {
             <div class="prof-charts">
               <figure class="prof-chart tcm-panel">
-                <figcaption>Attendance per month</figcaption>
+                <figcaption class="tcm-eyebrow">Attendance per month</figcaption>
                 <div class="prof-chart-box">
                   <app-chart
                     type="bar"
@@ -167,7 +186,7 @@
               </figure>
 
               <figure class="prof-chart tcm-panel">
-                <figcaption>How invitations ended</figcaption>
+                <figcaption class="tcm-eyebrow">How invitations ended</figcaption>
                 <div class="prof-chart-box">
                   <app-chart
                     type="doughnut"
@@ -179,7 +198,7 @@
               </figure>
 
               <figure class="prof-chart prof-chart-wide tcm-panel">
-                <figcaption>Performance over time</figcaption>
+                <figcaption class="tcm-eyebrow">Performance over time</figcaption>
                 <div class="prof-chart-box">
                   <app-chart
                     type="line"
@@ -245,7 +264,12 @@
                   </ng-container>
 
                   <tr mat-header-row *matHeaderRowDef="trainingColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: trainingColumns"></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: trainingColumns"
+                    class="tcm-railed"
+                    [style.--tcm-rail]="'var(--tcm-' + attendanceOf(row.attendanceStatus).tone + ')'"
+                  ></tr>
                 </table>
               </div>
             </div>
@@ -314,7 +338,12 @@
                   </ng-container>
 
                   <tr mat-header-row *matHeaderRowDef="paymentColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: paymentColumns"></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: paymentColumns"
+                    class="tcm-railed"
+                    [style.--tcm-rail]="'var(--tcm-' + methodOf(row).tone + ')'"
+                  ></tr>
                 </table>
               </div>
             </div>
@@ -356,7 +385,11 @@
             } @else {
               <ol class="prof-belt-list">
                 @for (belt of belts(); track belt.id) {
-                  <li class="prof-belt tcm-panel" [class.prof-belt-current]="belt.isCurrentBelt">
+                  <li
+                    class="prof-belt tcm-panel"
+                    [style.--tcm-rail]="beltRailFor(belt.belt.beltName)"
+                    [class.prof-belt-current]="belt.isCurrentBelt"
+                  >
                     <div class="prof-belt-main">
                       <app-belt-swatch [beltName]="belt.belt.beltName" />
                       @if (belt.isCurrentBelt) {

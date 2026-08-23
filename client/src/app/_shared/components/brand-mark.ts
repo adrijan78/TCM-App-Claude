@@ -13,6 +13,7 @@ import { Component, input } from '@angular/core';
   template: `
     <svg
       class="mark"
+      [class.mark-chrome]="tone() === 'chrome'"
       viewBox="0 0 64 64"
       [attr.width]="size()"
       [attr.height]="size()"
@@ -40,10 +41,18 @@ import { Component, input } from '@angular/core';
     .mark-yang {
       fill: var(--mark-yang, var(--mat-sys-tertiary));
     }
+
+    /* On the ink chrome, where the navy half would disappear: paper against gold. */
+    .mark-chrome {
+      --mark-yin: var(--tcm-on-ink);
+      --mark-yang: var(--tcm-gold);
+    }
   `,
 })
 export class BrandMark {
   readonly size = input(28);
   /** Set only where the mark stands alone; otherwise the adjacent text is the label. */
   readonly label = input('');
+  /** `chrome` recolours the mark for the ink toolbar and nav rail. */
+  readonly tone = input<'surface' | 'chrome'>('surface');
 }

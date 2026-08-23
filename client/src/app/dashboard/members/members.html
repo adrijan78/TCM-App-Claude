@@ -1,4 +1,8 @@
-<app-page-header title="Members" subtitle="Everyone who trains at this club, past and present.">
+<app-page-header
+  eyebrow="Club · Members"
+  title="Members"
+  subtitle="Everyone who trains at this club, past and present."
+>
   <a mat-flat-button routerLink="/dashboard/register-member">
     <mat-icon aria-hidden="true">person_add</mat-icon>
     <span>Register a member</span>
@@ -84,6 +88,7 @@
                 [firstName]="row.firstName"
                 [lastName]="row.lastName"
                 [photoPublicId]="row.photoPublicId"
+                [beltName]="row.currentBelt?.beltName ?? null"
                 [size]="36"
               />
               <span class="mem-person-text">
@@ -151,9 +156,15 @@
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <!--
+          The rail is the member's belt: forty rows of names become a grading spread you can
+          read down the edge of the table. An inactive member's rail goes quiet with the row.
+        -->
         <tr
           mat-row
           *matRowDef="let row; columns: columns"
+          class="tcm-railed"
+          [style.--tcm-rail]="row.isActive ? beltRail(row) : 'var(--tcm-quiet)'"
           [class.mem-row-inactive]="!row.isActive"
         ></tr>
       </table>

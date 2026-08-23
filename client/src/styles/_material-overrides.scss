@@ -16,33 +16,84 @@
   border-radius: var(--tcm-radius-md);
 }
 
-// Buttons: give them the app's pill-ish shape and enough height to be a comfortable
-// touch target on a phone (44px is the accessibility floor).
+// Buttons: the app's squared-off shape, a heavier label than Material's default, and enough
+// height to be a comfortable touch target on a phone (44px is the accessibility floor).
 .mat-mdc-button-base {
   --mdc-text-button-container-shape: var(--tcm-radius-md);
   --mdc-filled-button-container-shape: var(--tcm-radius-md);
   --mdc-outlined-button-container-shape: var(--tcm-radius-md);
   --mdc-protected-button-container-shape: var(--tcm-radius-md);
   min-block-size: 2.75rem;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+
+// The one gold moment a screen is allowed: its single primary action. Applied by hand, not
+// by default, so it stays rare enough to mean something.
+//
+// Material 22's buttons read the M3 *system* variables directly rather than per-component
+// `--mdc-*` tokens, so this repoints primary for the one element instead of guessing at a
+// component token name that no longer exists.
+.tcm-accent-button {
+  --mat-sys-primary: var(--tcm-gold);
+  --mat-sys-on-primary: var(--tcm-on-gold);
 }
 
 .mat-mdc-icon-button {
   min-block-size: auto;
 }
 
-// Tables: the app's tables are dense records, not marketing layouts.
+// Tables: the app's tables are dense records, not marketing layouts. The header takes the
+// data voice — these are column names off a record, the same register as an eyebrow.
 .mat-mdc-table {
   background: transparent;
 
   .mat-mdc-header-cell {
-    font: var(--mat-sys-label-large);
+    font-family: var(--tcm-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--mat-sys-on-surface-variant);
-    letter-spacing: 0.03em;
     white-space: nowrap;
   }
 
   .mat-mdc-row:hover .mat-mdc-cell {
     background: var(--mat-sys-surface-container-low);
+  }
+
+  // Figures line up down the column, whatever their width.
+  .mat-mdc-cell {
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Material's own divider is nearly a full outline colour, which on the dark theme reads as
+  // a ruled ledger. The table's job is to be quiet enough that the rails and chips carry it.
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
+    border-block-end-color: var(--tcm-panel-border);
+  }
+}
+
+// The belt rail on a table row.
+//
+// Neither of the obvious techniques works here. An inset box-shadow is not painted by a
+// `<tr>` under `border-collapse: collapse`; a background gradient on the row *is* painted,
+// but Material's cells inherit the row's background, so every cell redrew the gradient from
+// its own left edge and the table grew a green line between each column.
+//
+// A border on the leading cell is the one thing the table renders exactly once. Every first
+// cell reserves the space, so a table without rails still lines its header up with its body.
+.mat-mdc-table .mat-mdc-cell:first-of-type,
+.mat-mdc-table .mat-mdc-header-cell:first-of-type {
+  border-inline-start: var(--tcm-rail-width) solid transparent;
+}
+
+.mat-mdc-row.tcm-railed {
+  box-shadow: none;
+
+  .mat-mdc-cell:first-of-type {
+    border-inline-start-color: var(--tcm-rail);
   }
 }
 
@@ -59,6 +110,14 @@
 // Tabs: a heavier active label reads better than Material's default weight change alone.
 .mat-mdc-tab .mdc-tab__text-label {
   font: var(--mat-sys-title-small);
+  font-family: var(--tcm-font-body);
+  font-weight: 600;
+}
+
+// Form fields carry a lot of this app. Their labels join the data voice; the field itself
+// stays quiet until focused.
+.mat-mdc-form-field .mat-mdc-floating-label {
+  letter-spacing: 0.01em;
 }
 
 // The snackbar is the app's only floating message; lift it clear of the viewport edge.

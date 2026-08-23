@@ -17,6 +17,7 @@ import { CommonService } from '../../_services/common.service';
 import { apiErrorMessage } from '../../_services/unwrap';
 import { Belt, Member } from '../../_models/member.model';
 import { AGE_GROUP_LABELS, AgeGroup } from '../../_models/enums';
+import { beltColour } from '../../_shared/belt-colour';
 import { ConfirmDialog, ConfirmDialogData } from '../../_shared/components/confirm-dialog';
 import { BeltSwatch, StatusChip } from '../../_shared/components/status-chip';
 import { MemberAvatar } from '../../_shared/components/member-avatar';
@@ -58,6 +59,11 @@ export class Members {
   private readonly fb = inject(FormBuilder);
 
   protected readonly columns = ['member', 'belt', 'age', 'status', 'actions'];
+
+  /** The rail down a member's row is the belt they currently hold. */
+  protected beltRail(member: Member): string {
+    return beltColour(member.currentBelt?.beltName);
+  }
 
   protected readonly ageGroups = [
     AgeGroup.Kids,

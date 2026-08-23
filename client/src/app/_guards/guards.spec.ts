@@ -3,13 +3,18 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
   ActivatedRouteSnapshot,
+  Route,
   Router,
   RouterStateSnapshot,
+  UrlSegment,
   UrlTree,
+  convertToParamMap,
   provideRouter,
 } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { coachGuard } from './coach.guard';
+import { coachHomeMatch } from './home.guard';
+import { profileAccessGuard } from './own-profile.guard';
 
 const STORAGE_KEY = 'tcm.session';
 
@@ -34,6 +39,23 @@ function run(guard: typeof authGuard, url: string): boolean | UrlTree {
   return TestBed.runInInjectionContext(() =>
     guard({} as ActivatedRouteSnapshot, { url } as RouterStateSnapshot),
   ) as boolean | UrlTree;
+}
+
+/** `profileAccessGuard` reads the `:id` route parameter, so it needs a snapshot that has one. */
+function runOnProfile(id: string): boolean | UrlTree {
+  const route = { paramMap: convertToParamMap({ id }) } as ActivatedRouteSnapshot;
+
+  return TestBed.runInInjectionContext(() =>
+    profileAccessGuard(route, { url: `/dashboard/members/${id}` } as RouterStateSnapshot),
+  ) as boolean | UrlTree;
+}
+
+function matchHome(): boolean {
+  // Angular 22's CanMatchFn takes a third argument, the partial snapshot of the match so
+  // far. `coachHomeMatch` ignores all three — it only asks who is signed in.
+  return TestBed.runInInjectionContext(() =>
+    coachHomeMatch({} as Route, [] as UrlSegment[], {} as Parameters<typeof coachHomeMatch>[2]),
+  ) as boolean;
 }
 
 function configure(): void {
@@ -107,5 +129,60 @@ describe('coachGuard', () => {
     const result = run(coachGuard, '/dashboard/payments');
 
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toContain('/login');
+  });
+});
+
+describe('profileAccessGuard', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('lets a coach open anyone in the club', () => {
+    storeSession(['Coach']);
+    configure();
+
+    expect(runOnProfile('someone-else')).toBe(true);
+  });
+
+  it('lets a member open their own profile', () => {
+    // The note-notification email links a member straight here, so this path has to work.
+    storeSession(['Member']);
+    configure();
+
+    expect(runOnProfile('user-1')).toBe(true);
+  });
+
+  it('sends a member reaching for another id back to their own profile', () => {
+    storeSession(['Member']);
+    configure();
+
+    const result = runOnProfile('someone-else');
+
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/members/user-1');
+  });
+});
+
+describe('coachHomeMatch', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('matches the club dashboard for a coach', () => {
+    storeSession(['Coach']);
+    configure();
+
+    expect(matchHome()).toBe(true);
+  });
+
+  it('does not match for a member, so the member home is used instead', () => {
+    storeSession(['Member']);
+    configure();
+
+    expect(matchHome()).toBe(false);
+  });
+
+  it('does not match for a signed-out visitor', () => {
+    configure();
+
+    expect(matchHome()).toBe(false);
   });
 });

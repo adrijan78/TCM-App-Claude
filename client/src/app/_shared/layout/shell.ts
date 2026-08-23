@@ -8,7 +8,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,7 +18,9 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../_services/auth.service';
+import { MemberService } from '../../_services/member.service';
 import { ThemeService } from '../../_services/theme.service';
+import { beltColour } from '../belt-colour';
 import { BrandMark } from '../components/brand-mark';
 
 interface NavItem {
@@ -66,6 +68,7 @@ const HANDSET = '(max-width: 959.98px)';
 })
 export class Shell {
   private readonly auth = inject(AuthService);
+  private readonly members = inject(MemberService);
   private readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly breakpoints = inject(BreakpointObserver);
@@ -121,7 +124,29 @@ export class Shell {
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   });
 
+  /**
+   * The signed-in member's belt, ringing their initials in the toolbar.
+   *
+   * The token carries no belt — it is not an authorization fact — so this is one fetch per
+   * session, and a failure simply leaves the ring off.
+   */
+  private readonly ownBelt = signal<string | null>(null);
+  protected readonly beltColour = computed(() =>
+    this.ownBelt() ? beltColour(this.ownBelt()) : 'transparent',
+  );
+
   constructor() {
+    const id = this.auth.currentUser()?.id;
+    if (id) {
+      this.members
+        .getMember(id)
+        .pipe(takeUntilDestroyed())
+        .subscribe({
+          next: (member) => this.ownBelt.set(member.currentBelt?.beltName ?? null),
+          error: () => this.ownBelt.set(null),
+        });
+    }
+
     // Closing the overlay after a navigation: leaving it open would cover the page the user
     // just asked for.
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {

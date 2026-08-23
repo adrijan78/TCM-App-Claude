@@ -2,7 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './_guards/auth.guard';
 import { coachGuard } from './_guards/coach.guard';
 import { guestGuard } from './_guards/guest.guard';
-import { ownProfileRedirect } from './_guards/own-profile.guard';
+import { coachHomeMatch } from './_guards/home.guard';
+import { ownProfileRedirect, profileAccessGuard } from './_guards/own-profile.guard';
 
 /**
  * SPEC section 3.3. Everything under /dashboard is lazy-loaded and sits behind `authGuard`;
@@ -49,12 +50,22 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./_shared/layout/shell').then((m) => m.Shell),
     children: [
+      // Two home pages behind one path (SPEC section 5): the club for a coach, their own
+      // for a member. `coachHomeMatch` picks; the member's is the fallback, so a session
+      // whose role cannot be read still lands somewhere that shows only their own data.
       {
         path: '',
         pathMatch: 'full',
         title: 'Home',
+        canMatch: [coachHomeMatch],
         loadComponent: () =>
           import('./dashboard/club-details/club-details').then((m) => m.ClubDetails),
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'Home',
+        loadComponent: () => import('./dashboard/home/member-home').then((m) => m.MemberHome),
       },
       {
         // "My profile" is the same screen as a member profile, resolved to the signed-in
@@ -75,9 +86,11 @@ export const routes: Routes = [
       },
       {
         // Reached from the note-notification email. A member may open their own profile here,
-        // so this one is not coach-gated — the API decides whose record they may read.
+        // so this one is not coach-gated — `profileAccessGuard` lets a coach through to
+        // anyone and a member only to themselves, and the API decides regardless.
         path: 'members/:id',
         title: 'Member profile',
+        canActivate: [profileAccessGuard],
         loadComponent: () =>
           import('./dashboard/members/member-profile').then((m) => m.MemberProfile),
       },

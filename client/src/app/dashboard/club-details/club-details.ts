@@ -47,10 +47,12 @@ const MONTH_LABELS = [
 /**
  * SPEC section 6.2 — the club dashboard.
  *
- * This is the landing page for **both** roles, but three of its pieces (the calendar, the
- * countdown and the quick member search) sit behind coach-only endpoints. Rather than let a
- * member's home page fill with 403s, those fetches are skipped for a member and the page
- * shows the club figures alone. The member's own home page is Phase 10's job.
+ * The **coach's** landing page. Since Phase 10, `/dashboard` matches `MemberHome` for a
+ * member (see `coachHomeMatch`), so this screen is reached by a coach in normal use.
+ *
+ * The `isCoach()` skips below are kept all the same: three of its pieces — the calendar, the
+ * countdown and the quick member search — sit behind coach-only endpoints, and a session
+ * whose role cannot be read should show the club figures alone rather than fill with 403s.
  */
 @Component({
   selector: 'app-club-details',

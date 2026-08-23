@@ -75,8 +75,10 @@ describe('BeltSwatch', () => {
     fixture.componentRef.setInput('beltName', beltName);
     fixture.detectChanges();
 
-    const dot = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.belt-dot');
-    return dot?.style.background ?? '';
+    // The swatch is a short band, not a dot: a belt is the one object in a dojang everyone
+    // can read across the room.
+    const band = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.belt-band');
+    return band?.style.background ?? '';
   }
 
   it('reads the colour out of the belt name', () => {

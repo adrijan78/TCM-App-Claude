@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import { PhotoService } from '../../_services/photo.service';
+import { beltColour } from '../belt-colour';
 
 /**
  * A member's photo, falling back to their initials.
@@ -30,16 +31,30 @@ import { PhotoService } from '../../_services/photo.service';
     }
   `,
   styles: `
+    /*
+      The ring is the member's belt. It is the design's signature at its smallest size, and
+      it is the reason a coach can scan a list of forty faces and see the grading spread
+      without reading a word. No belt on record leaves the ring off entirely.
+    */
     :host {
       display: inline-grid;
       place-items: center;
       inline-size: var(--avatar-size);
       block-size: var(--avatar-size);
       border-radius: 50%;
-      overflow: hidden;
       flex: none;
       background: var(--mat-sys-primary-container);
       color: var(--mat-sys-on-primary-container);
+      box-shadow:
+        0 0 0 var(--avatar-ring-width) var(--tcm-panel-bg),
+        0 0 0 calc(var(--avatar-ring-width) + var(--avatar-belt-width)) var(--avatar-belt);
+    }
+
+    .avatar-img,
+    .avatar-fallback {
+      /* The clip lives on the children: a ring drawn on :host would be cut off by overflow. */
+      border-radius: 50%;
+      overflow: hidden;
     }
 
     .avatar-img {
@@ -49,14 +64,23 @@ import { PhotoService } from '../../_services/photo.service';
     }
 
     .avatar-fallback {
-      font: var(--mat-sys-label-medium);
+      display: grid;
+      place-items: center;
+      inline-size: 100%;
+      block-size: 100%;
+      font-family: var(--tcm-font-mono);
       font-weight: 600;
       /* Scale the initials with the avatar so one component covers 32px and 96px. */
-      font-size: calc(var(--avatar-size) * 0.38);
+      font-size: calc(var(--avatar-size) * 0.34);
       line-height: 1;
     }
   `,
-  host: { '[style.--avatar-size.px]': 'size()' },
+  host: {
+    '[style.--avatar-size.px]': 'size()',
+    '[style.--avatar-belt]': 'belt()',
+    '[style.--avatar-belt-width.px]': 'beltWidth()',
+    '[style.--avatar-ring-width.px]': 'ringWidth()',
+  },
 })
 export class MemberAvatar {
   private readonly photos = inject(PhotoService);
@@ -67,7 +91,20 @@ export class MemberAvatar {
   readonly photoPublicId = input<string | null>(null);
   readonly size = input(40);
 
+  /** The member's current belt. Left unset, the avatar simply has no ring. */
+  readonly beltName = input<string | null>(null);
+
   protected readonly objectUrl = signal<string | null>(null);
+
+  protected readonly belt = computed(() =>
+    this.beltName() ? beltColour(this.beltName()) : 'transparent',
+  );
+
+  /** The ring scales with the avatar, or a 96px profile photo would wear a hairline. */
+  protected readonly beltWidth = computed(() => (this.beltName() ? Math.max(2, Math.round(this.size() * 0.055)) : 0));
+
+  /** A gap in the panel's own colour, so the belt reads as a separate band. */
+  protected readonly ringWidth = computed(() => (this.beltName() ? 2 : 0));
 
   protected readonly name = computed(() => `${this.firstName()} ${this.lastName()}`.trim());
 

@@ -14,6 +14,7 @@ import { BrandMark } from '../_shared/components/brand-mark';
       <app-brand-mark [size]="40" />
 
       <p class="not-found-code">404</p>
+      <span class="tcm-eyebrow">Page not found</span>
       <h1 class="not-found-title">We could not find that page</h1>
       <p class="not-found-body">
         The link may be out of date, or the page may have moved. Emailed links to a training or a
@@ -41,18 +42,22 @@ import { BrandMark } from '../_shared/components/brand-mark';
 
     .not-found-code {
       margin: var(--tcm-space-2) 0 0;
-      font-family: 'Barlow Condensed', Roboto, sans-serif;
+      font-family: var(--tcm-font-display);
       font-size: clamp(4rem, 18vw, 7rem);
       font-weight: 700;
       line-height: 0.9;
       letter-spacing: 0.02em;
-      /* Big, but not shouting: it is a signpost, not the message. */
-      color: var(--mat-sys-outline-variant);
+      /* Big, but not shouting: it is a signpost, not the message. The gold is the only
+         thing on this page that belongs to the club rather than to the error. */
+      color: transparent;
+      -webkit-text-stroke: 2px var(--tcm-gold-hairline);
     }
 
     .not-found-title {
       margin: 0;
       font: var(--mat-sys-headline-small);
+      font-family: var(--tcm-font-display);
+      font-weight: 600;
     }
 
     .not-found-body {

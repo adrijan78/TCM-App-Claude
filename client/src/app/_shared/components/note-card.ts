@@ -20,7 +20,7 @@ import { StatusChip } from './status-chip';
   selector: 'app-note-card',
   imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, StatusChip],
   template: `
-    <article class="note" [class.note-high]="isHigh()">
+    <article class="note" [style.--tcm-rail]="rail()">
       <header class="note-head">
         <app-status-chip
           [label]="priority().label"
@@ -71,22 +71,24 @@ import { StatusChip } from './status-chip';
     </article>
   `,
   styles: `
+    /*
+      Every note carries its priority as a rail, not just the urgent ones: a wall of cards
+      has to be scannable without reading a single chip, and "this one is Low" is worth as
+      much at a glance as "this one is High".
+    */
     .note {
       display: flex;
       flex-direction: column;
       gap: var(--tcm-space-2);
       block-size: 100%;
       padding: var(--tcm-space-4);
+      padding-inline-start: var(--tcm-space-5);
       border: 1px solid var(--tcm-panel-border);
       border-radius: var(--tcm-radius-lg);
       background: var(--tcm-panel-bg);
-      box-shadow: var(--tcm-shadow-1);
-    }
-
-    /* A second, non-colour cue that this one is urgent — the chip already says so, but a
-       wall of cards needs to be scannable without reading every chip. */
-    .note-high {
-      border-inline-start: 3px solid var(--tcm-priority-high);
+      box-shadow:
+        inset var(--tcm-rail-width) 0 0 0 var(--tcm-rail),
+        var(--tcm-shadow-1);
     }
 
     .note-head {
@@ -157,5 +159,5 @@ export class NoteCard {
   readonly remove = output<Note>();
 
   protected readonly priority = computed(() => NOTE_PRIORITY_PRESENTATION[this.note().priority]);
-  protected readonly isHigh = computed(() => this.priority().tone === 'critical');
+  protected readonly rail = computed(() => `var(--tcm-${this.priority().tone})`);
 }

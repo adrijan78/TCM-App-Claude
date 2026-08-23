@@ -1,6 +1,16 @@
+// -----------------------------------------------------------------------------------------
+// The chrome: toolbar and nav rail.
+//
+// Both are ink in *both* themes — they are the walls of the dojang, and the working surface
+// is always the bright one between them. The only warm thing in here is the gold: a hairline
+// under the toolbar, the spine beside the current page, and the coach's one primary action.
+// -----------------------------------------------------------------------------------------
+
 :host {
   display: block;
 }
+
+// --- Toolbar ------------------------------------------------------------------------------
 
 .shell-toolbar {
   position: sticky;
@@ -9,16 +19,30 @@
   block-size: var(--tcm-toolbar-height);
   gap: var(--tcm-space-2);
   padding-inline: var(--tcm-space-2);
-  // The toolbar reads as part of the page, not a coloured band across the top. The hairline
-  // is what separates it once the content scrolls under.
-  background: var(--mat-sys-surface);
-  border-block-end: 1px solid var(--tcm-panel-border);
+  background: var(--tcm-ink);
+  color: var(--tcm-on-ink);
+  // The one gold line in the app's chrome. It is what a member sees first, and it is 1px.
+  border-block-end: 1px solid var(--tcm-gold-hairline);
+}
+
+// Everything in the chrome inherits ink foreground rather than Material's surface colours.
+.shell-toolbar .mat-mdc-icon-button,
+.shell-toolbar .mat-mdc-button {
+  color: var(--tcm-on-ink);
+}
+
+// The app-wide focus ring is drawn in primary navy, which vanishes against ink. In here it
+// is gold.
+.shell-toolbar :where(a, button):focus-visible,
+.shell-sidenav :where(a, button):focus-visible {
+  outline-color: var(--tcm-gold);
 }
 
 .shell-brand {
   display: inline-flex;
   align-items: center;
   gap: var(--tcm-space-2);
+  padding-inline: var(--tcm-space-2);
   color: inherit;
   text-decoration: none;
 }
@@ -32,19 +56,23 @@
     display: inline;
   }
 
-  font: var(--mat-sys-title-medium);
-  font-family: 'Barlow Condensed', Roboto, sans-serif;
+  font-family: var(--tcm-font-display);
+  font-size: 1.0625rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .shell-page-title {
   margin-inline-start: var(--tcm-space-2);
-  padding-inline-start: var(--tcm-space-2);
-  border-inline-start: 1px solid var(--tcm-panel-border);
-  font: var(--mat-sys-label-large);
-  color: var(--mat-sys-on-surface-variant);
+  padding-inline-start: var(--tcm-space-3);
+  border-inline-start: 1px solid var(--tcm-ink-divider);
+  font-family: var(--tcm-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tcm-on-ink-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -66,11 +94,16 @@
   place-items: center;
   inline-size: 2rem;
   block-size: 2rem;
-  border-radius: 50%;
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
-  font: var(--mat-sys-label-medium);
+  border-radius: var(--tcm-radius-sm);
+  background: var(--tcm-ink-raised);
+  // The ring is the member's own belt, set from the component. It is the same device the
+  // avatars use throughout the app, at the smallest size it still reads.
+  box-shadow: inset 0 0 0 1.5px var(--shell-avatar-belt, transparent);
+  color: var(--tcm-on-ink);
+  font-family: var(--tcm-font-mono);
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .shell-account-name,
@@ -81,6 +114,10 @@
   @media (min-width: 576px) {
     display: inline;
   }
+}
+
+.shell-account-name {
+  font-weight: 500;
 }
 
 .shell-account-head {
@@ -95,10 +132,13 @@
 .shell-account-head-role {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-small);
+  font-family: var(--tcm-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
+
+// --- Nav rail -----------------------------------------------------------------------------
 
 .shell-container {
   // Fill what the toolbar leaves behind.
@@ -109,8 +149,9 @@
 .shell-sidenav {
   inline-size: var(--tcm-sidenav-width);
   padding-block: var(--tcm-space-3);
-  border-inline-end: 1px solid var(--tcm-panel-border);
-  background: var(--mat-sys-surface);
+  border-inline-end: none;
+  background: var(--tcm-ink);
+  color: var(--tcm-on-ink);
   transition: inline-size var(--tcm-duration-base) var(--tcm-ease-standard);
 }
 
@@ -126,17 +167,33 @@
   display: flex;
   flex-direction: column;
   block-size: 100%;
-  gap: var(--tcm-space-2);
+  gap: var(--tcm-space-1);
 }
 
-.shell-nav-active {
-  background: var(--mat-sys-secondary-container);
-  border-radius: var(--tcm-radius-md);
+// Material's list styling assumes a surface background; on ink it has to be told.
+.shell-nav .mat-mdc-list-item {
+  border-radius: 0;
+  color: var(--tcm-on-ink-muted);
 
   .mat-mdc-list-item-title,
   .mat-icon {
-    color: var(--mat-sys-on-secondary-container);
+    color: inherit;
   }
+
+  &:hover {
+    background: var(--tcm-ink-raised);
+    color: var(--tcm-on-ink);
+  }
+}
+
+// The current page: a gold spine, the same device as the belt rail on a panel. The nav is
+// where the rail language is introduced, so it reads as structure by the time you meet it
+// on a card.
+.shell-nav-active.mat-mdc-list-item {
+  background: var(--tcm-ink-raised);
+  color: var(--tcm-on-ink);
+  box-shadow: inset var(--tcm-rail-width) 0 0 0 var(--tcm-gold);
+  font-weight: 600;
 }
 
 // The coach's most common action, kept at the foot of the nav where it does not compete
@@ -153,6 +210,8 @@
     gap: var(--tcm-space-2);
   }
 }
+
+// --- Content ------------------------------------------------------------------------------
 
 .shell-content {
   background: var(--tcm-page-bg);

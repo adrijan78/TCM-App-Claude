@@ -29,7 +29,10 @@
   display: grid;
   gap: var(--tcm-space-4);
   margin-block-end: var(--tcm-space-5);
-  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  /* Two up on a phone: the rail and the mono label give each card enough identity to
+     survive the narrower column, and four stacked cards is a lot of scrolling before the
+     page says anything. */
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
 }
 
 /* ---- Panels ------------------------------------------------------------------------------- */
@@ -61,8 +64,6 @@
 
 .cd-chart figcaption {
   margin-block-end: var(--tcm-space-3);
-  font: var(--mat-sys-title-small);
-  color: var(--mat-sys-on-surface-variant);
 }
 
 .cd-chart-box {
@@ -110,7 +111,7 @@
   font: var(--mat-sys-label-medium);
 
   strong {
-    font-family: 'Barlow Condensed', Roboto, sans-serif;
+    font-family: var(--tcm-font-display);
     font-size: 2rem;
     font-weight: 600;
     line-height: 1;
@@ -193,6 +194,8 @@
   align-items: center;
   gap: var(--tcm-space-3);
   padding: var(--tcm-space-2);
+  /* Room for the rail, so the spine never sits under the date block. */
+  padding-inline-start: var(--tcm-space-3);
   border-radius: var(--tcm-radius-md);
   color: inherit;
   text-decoration: none;
@@ -213,14 +216,17 @@
 }
 
 .cd-upcoming-day {
-  font-family: 'Barlow Condensed', Roboto, sans-serif;
+  font-family: var(--tcm-font-display);
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .cd-upcoming-month {
-  font: var(--mat-sys-label-small);
+  font-family: var(--tcm-font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--mat-sys-on-surface-variant);
 }
