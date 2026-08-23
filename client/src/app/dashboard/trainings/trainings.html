@@ -1,0 +1,241 @@
+<app-page-header title="Trainings" subtitle="Every session this club has run or has planned.">
+  <mat-button-toggle-group
+    hideSingleSelectionIndicator
+    [value]="view()"
+    (change)="view.set($event.value)"
+    aria-label="How to show the trainings"
+    class="tr-view"
+  >
+    <mat-button-toggle value="table">
+      <mat-icon aria-hidden="true">table_rows</mat-icon>
+      <span>Table</span>
+    </mat-button-toggle>
+    <mat-button-toggle value="calendar">
+      <mat-icon aria-hidden="true">calendar_month</mat-icon>
+      <span>Calendar</span>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <button mat-flat-button (click)="openForm()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    <span>New training</span>
+  </button>
+</app-page-header>
+
+<form class="tr-filters tcm-panel" [formGroup]="filters">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tr-search">
+    <mat-label>Search by name</mat-label>
+    <input matInput type="search" formControlName="title" placeholder="Sparring, grading…" />
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Status</mat-label>
+    <mat-select formControlName="status">
+      <mat-option [value]="null">Any status</mat-option>
+      @for (status of statuses; track status.value) {
+        <mat-option [value]="status.value">{{ status.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Type</mat-label>
+    <mat-select formControlName="type">
+      <mat-option [value]="null">Any type</mat-option>
+      @for (type of types; track type.value) {
+        <mat-option [value]="type.value">{{ type.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (hasFilters()) {
+    <button mat-stroked-button type="button" class="tr-clear" (click)="clearFilters()">
+      <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+      <span>Clear</span>
+    </button>
+  }
+</form>
+
+@if (loading() || error() || rows().length === 0) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      [skeleton]="true"
+      [skeletonRows]="6"
+      loadingMessage="Loading trainings…"
+      errorTitle="The trainings could not be loaded"
+      [emptyTitle]="hasFilters() ? 'No trainings match those filters' : 'No trainings yet'"
+      [emptyMessage]="
+        hasFilters()
+          ? 'Try a different name, status or type — or clear the filters to see every session.'
+          : 'Create a session, invite the members who should be there, and the club gets an email.'
+      "
+      [emptyIcon]="hasFilters() ? 'event_busy' : 'sports_martial_arts'"
+      [emptyActionLabel]="hasFilters() ? 'Clear filters' : 'Create the first training'"
+      [emptyActionIcon]="hasFilters() ? 'filter_alt_off' : 'add'"
+      (retry)="reload()"
+      (emptyAction)="hasFilters() ? clearFilters() : openForm()"
+    />
+  </div>
+} @else if (view() === 'table') {
+  <div class="tcm-panel tr-table-panel">
+    <div class="tcm-scroll-x">
+      <table mat-table [dataSource]="rows()" class="tr-table">
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>When</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="tr-date">{{ row.date | date: 'd MMM y' }}</span>
+            <span class="tr-time">{{ row.date | date: 'HH:mm' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Session</th>
+          <td mat-cell *matCellDef="let row">
+            <a class="tr-name" [routerLink]="['/dashboard/trainings', row.id]">
+              {{ row.description }}
+            </a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let row">
+            <app-status-chip
+              [label]="typeOf(row).label"
+              [tone]="typeOf(row).tone"
+              [icon]="typeOf(row).icon"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <app-status-chip
+              [label]="statusOf(row).label"
+              [tone]="statusOf(row).tone"
+              [icon]="statusOf(row).icon"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="turnout">
+          <th mat-header-cell *matHeaderCellDef>Turnout</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="tr-turnout">
+              {{ row.presentCount }}/{{ row.invitedCount }}
+              <span class="tr-turnout-pct">{{ turnout(row) }}%</span>
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>
+            <span class="tcm-visually-hidden">Actions</span>
+          </th>
+          <td mat-cell *matCellDef="let row" class="tr-actions">
+            <button
+              mat-icon-button
+              matTooltip="Edit training"
+              [attr.aria-label]="'Edit ' + row.description"
+              (click)="openForm(row)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Delete training"
+              [attr.aria-label]="'Delete ' + row.description"
+              (click)="remove(row)"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+            <a
+              mat-icon-button
+              [routerLink]="['/dashboard/trainings', row.id]"
+              matTooltip="Open session"
+              [attr.aria-label]="'Open ' + row.description"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+  </div>
+} @else {
+  <div class="tr-calendar-layout">
+    <div class="tcm-panel tr-calendar">
+      <mat-calendar [dateClass]="dateClass" (selectedChange)="selectedDate.set($event)" />
+
+      <!-- Colour is never the only cue: each key entry names its state in words. -->
+      <ul class="tr-key">
+        <li><span class="tr-key-dot tr-key-active"></span> Active</li>
+        <li><span class="tr-key-dot tr-key-finished"></span> Finished</li>
+        <li><span class="tr-key-dot tr-key-cancelled"></span> Cancelled</li>
+      </ul>
+    </div>
+
+    <div class="tr-day">
+      @if (!selectedDate()) {
+        <div class="tcm-panel">
+          <app-state-panel
+            emptyTitle="Pick a day"
+            emptyMessage="Days with a session are marked on the calendar. Choose one to see what was on."
+            emptyIcon="calendar_month"
+          />
+        </div>
+      } @else if (selectedDayTrainings().length === 0) {
+        <div class="tcm-panel">
+          <app-state-panel
+            emptyTitle="Nothing on this day"
+            [emptyMessage]="(selectedDate() | date: 'EEEE d MMMM y') + ' has no session scheduled.'"
+            emptyIcon="event_busy"
+            emptyActionLabel="Add a training here"
+            (emptyAction)="openForm(undefined, selectedDate())"
+          />
+        </div>
+      } @else {
+        <h2 class="tr-day-title">{{ selectedDate() | date: 'EEEE d MMMM y' }}</h2>
+
+        <div class="tr-day-list tcm-stagger">
+          @for (training of selectedDayTrainings(); track training.id) {
+            <article class="tcm-panel tr-day-card">
+              <header class="tr-day-card-head">
+                <a class="tr-name" [routerLink]="['/dashboard/trainings', training.id]">
+                  {{ training.description }}
+                </a>
+                <span class="tr-time">{{ training.date | date: 'HH:mm' }}</span>
+              </header>
+
+              <div class="tr-day-chips">
+                <app-status-chip
+                  [label]="statusOf(training).label"
+                  [tone]="statusOf(training).tone"
+                  [icon]="statusOf(training).icon"
+                />
+                <app-status-chip
+                  [label]="typeOf(training).label"
+                  [tone]="typeOf(training).tone"
+                  [icon]="typeOf(training).icon"
+                />
+              </div>
+
+              <p class="tr-day-turnout">
+                {{ training.presentCount }} of {{ training.invitedCount }} invited attended ({{
+                  turnout(training)
+                }}%)
+              </p>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

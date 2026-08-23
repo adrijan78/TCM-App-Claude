@@ -1,0 +1,107 @@
+// -----------------------------------------------------------------------------------------
+// Element-level defaults and the handful of utility classes the app reuses.
+// Everything here reads from _tokens.scss; no literal values.
+// -----------------------------------------------------------------------------------------
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  // Set by ThemeService to `light`, `dark` or `light dark`. Every `light-dark()` token and
+  // all of Angular Material's system variables resolve against it.
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--tcm-page-bg);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  // Stops the layout jumping sideways when a route with a scrollbar follows one without.
+  scrollbar-gutter: stable;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Headings come from the brand family (see mat.theme in styles.scss). Condensed and tight,
+// so a page title reads as a title even at small sizes.
+h1,
+h2,
+h3 {
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+// Long member names and note titles should break rather than force a horizontal scrollbar.
+p,
+li,
+td {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--mat-sys-primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+// One focus ring for the whole app, on top of Material's own. Keyboard users get it;
+// mouse users do not.
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+  border-radius: var(--tcm-radius-sm);
+}
+
+// --- Reusable structure --------------------------------------------------------------------
+
+/// The recessed page a dashboard route renders into.
+.tcm-page {
+  max-inline-size: var(--tcm-content-max);
+  margin-inline: auto;
+}
+
+/// A raised panel: cards, form sections, table wrappers.
+.tcm-panel {
+  padding: var(--tcm-space-5);
+  border: 1px solid var(--tcm-panel-border);
+  border-radius: var(--tcm-radius-lg);
+  background: var(--tcm-panel-bg);
+  box-shadow: var(--tcm-shadow-1);
+}
+
+/// Vertical rhythm between the blocks of a page.
+.tcm-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-5);
+}
+
+/// Wide content — tables, charts, code — scrolls inside its own box rather than pushing the
+/// page sideways.
+.tcm-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/// Visible only to assistive technology.
+.tcm-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/// Numbers in a table column should line up. Tabular figures do that without a monospace font.
+.tcm-numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

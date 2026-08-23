@@ -1,0 +1,238 @@
+.prof-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-5);
+  margin-block-end: var(--tcm-space-5);
+}
+
+.prof-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--tcm-space-4);
+}
+
+.prof-photo {
+  position: relative;
+}
+
+.prof-photo-btn {
+  position: absolute;
+  inset-block-end: -0.25rem;
+  inset-inline-end: -0.25rem;
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--tcm-panel-bg);
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  cursor: pointer;
+
+  mat-icon {
+    inline-size: 1rem;
+    block-size: 1rem;
+    font-size: 1rem;
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+.prof-photo-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.prof-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}
+
+.prof-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-5);
+  margin: 0;
+  margin-inline-start: auto;
+
+  dt {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-label-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  dd {
+    margin: 0;
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+.prof-tabs {
+  --mat-tab-header-divider-height: 1px;
+}
+
+.prof-tab {
+  padding-block-start: var(--tcm-space-5);
+}
+
+.prof-year {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.prof-year mat-form-field {
+  inline-size: 12rem;
+}
+
+.prof-stats {
+  display: grid;
+  gap: var(--tcm-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+}
+
+.prof-charts {
+  display: grid;
+  gap: var(--tcm-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+}
+
+.prof-chart {
+  margin: 0;
+}
+
+.prof-chart-wide {
+  grid-column: 1 / -1;
+}
+
+.prof-chart figcaption {
+  margin-block-end: var(--tcm-space-3);
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.prof-chart-box {
+  block-size: 15rem;
+}
+
+.prof-table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.prof-section-title {
+  margin: 0;
+  padding: var(--tcm-space-4) var(--tcm-space-4) 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.prof-table-panel .prof-section-title {
+  padding-block-end: var(--tcm-space-3);
+  border-block-end: 1px solid var(--tcm-panel-border);
+}
+
+.prof-table {
+  inline-size: 100%;
+  min-inline-size: 42rem;
+}
+
+.prof-reason {
+  display: block;
+  max-inline-size: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+/* ---- Tab 3 ------------------------------------------------------------------------------- */
+
+.prof-split {
+  display: grid;
+  gap: var(--tcm-space-5);
+  align-items: start;
+
+  /* SPEC 6.4 puts belts on the left and notes on the right; below this width they stack. */
+  @media (min-width: 992px) {
+    grid-template-columns: 22rem 1fr;
+  }
+}
+
+.prof-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tcm-space-2);
+  margin-block-end: var(--tcm-space-3);
+
+  .prof-section-title {
+    padding: 0;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tcm-space-2);
+  }
+}
+
+.prof-belt-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prof-belt {
+  position: relative;
+  padding: var(--tcm-space-4);
+}
+
+.prof-belt-current {
+  border-inline-start: 3px solid var(--tcm-positive);
+}
+
+.prof-belt-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-2);
+  padding-inline-end: var(--tcm-space-6);
+}
+
+.prof-belt-date {
+  margin: var(--tcm-space-1) 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.prof-belt-note {
+  margin: var(--tcm-space-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.prof-belt-remove {
+  position: absolute;
+  inset-block-start: var(--tcm-space-2);
+  inset-inline-end: var(--tcm-space-2);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.prof-note-list {
+  display: grid;
+  gap: var(--tcm-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
+  align-items: stretch;
+}

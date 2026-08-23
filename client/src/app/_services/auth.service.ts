@@ -12,6 +12,7 @@ import {
   RegisteredMember,
   ResetPasswordRequest,
 } from '../_models/auth.model';
+import { CommonService } from './common.service';
 import { unwrap } from './unwrap';
 
 const STORAGE_KEY = 'tcm.session';
@@ -28,6 +29,7 @@ const STORAGE_KEY = 'tcm.session';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly common = inject(CommonService);
 
   private readonly session = signal<MemberToken | null>(this.restore());
 
@@ -78,6 +80,10 @@ export class AuthService {
   logout(redirectTo: string | null = '/login'): void {
     this.session.set(null);
     localStorage.removeItem(STORAGE_KEY);
+
+    // The belt and role lookups are cached for the session. Roles in particular are
+    // coach-only, so the next account must not inherit them.
+    this.common.clearCache();
 
     if (redirectTo) {
       void this.router.navigateByUrl(redirectTo);

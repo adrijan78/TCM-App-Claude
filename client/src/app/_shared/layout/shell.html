@@ -1,28 +1,63 @@
-<mat-toolbar color="primary" class="shell-toolbar">
+<mat-toolbar class="shell-toolbar">
   <button
     mat-icon-button
-    (click)="toggleSidenav()"
-    [attr.aria-label]="sidenavOpen() ? 'Hide navigation' : 'Show navigation'"
-    [attr.aria-expanded]="sidenavOpen()"
+    class="shell-drawer-toggle"
+    (click)="toggleDrawer()"
+    [matTooltip]="isHandset() ? 'Menu' : railCollapsed() ? 'Expand menu' : 'Collapse menu'"
+    [attr.aria-label]="isHandset() ? 'Toggle navigation' : 'Collapse or expand navigation'"
+    [attr.aria-expanded]="showLabels()"
   >
-    <mat-icon>menu</mat-icon>
+    <mat-icon>{{ isHandset() ? 'menu' : railCollapsed() ? 'menu_open' : 'menu' }}</mat-icon>
   </button>
 
-  <span class="shell-title">Taekwondo Club</span>
+  <a class="shell-brand" routerLink="/dashboard">
+    <app-brand-mark [size]="26" />
+    <span class="shell-brand-name">Taekwondo Club</span>
+  </a>
+
+  <!-- On a phone the nav is hidden behind the drawer, so the toolbar has to say where we are. -->
+  @if (isHandset() && pageTitle()) {
+    <span class="shell-page-title">{{ pageTitle() }}</span>
+  }
+
   <span class="shell-spacer"></span>
 
-  <button mat-button [matMenuTriggerFor]="accountMenu" class="shell-account">
-    <span class="shell-avatar" aria-hidden="true">{{ initials() }}</span>
-    <span class="shell-account-name">{{ fullName() }}</span>
-    <mat-icon>arrow_drop_down</mat-icon>
+  <button
+    mat-icon-button
+    (click)="toggleTheme()"
+    [matTooltip]="isDark() ? 'Switch to light' : 'Switch to dark'"
+    [attr.aria-label]="isDark() ? 'Switch to the light theme' : 'Switch to the dark theme'"
+  >
+    <mat-icon>{{ isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
 
-  <mat-menu #accountMenu="matMenu">
-    <div class="shell-account-role" role="note">{{ isCoach() ? 'Coach' : 'Member' }}</div>
+  <button mat-button [matMenuTriggerFor]="accountMenu" class="shell-account">
+    <!--
+      Initials, not a photo. Member photos live behind an authenticated endpoint that an
+      `img src` cannot reach, so showing one needs `PhotoService` — which arrives with the
+      member profile in phase 9. The avatar is sized and positioned for it now.
+    -->
+    <span class="shell-avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="shell-account-name">{{ fullName() }}</span>
+    <mat-icon iconPositionEnd class="shell-account-caret">arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #accountMenu="matMenu" class="shell-account-menu">
+    <div class="shell-account-head">
+      <p class="shell-account-head-name">{{ fullName() }}</p>
+      <p class="shell-account-head-role">{{ isCoach() ? 'Coach' : 'Member' }}</p>
+    </div>
+
     <a mat-menu-item routerLink="/dashboard/profile">
       <mat-icon>person</mat-icon>
       <span>My profile</span>
     </a>
+
+    <button mat-menu-item (click)="useSystemTheme()" [disabled]="themeMode() === 'system'">
+      <mat-icon>brightness_auto</mat-icon>
+      <span>Match system theme</span>
+    </button>
+
     <button mat-menu-item (click)="signOut()">
       <mat-icon>logout</mat-icon>
       <span>Sign out</span>
@@ -31,24 +66,53 @@
 </mat-toolbar>
 
 <mat-sidenav-container class="shell-container">
-  <mat-sidenav [opened]="sidenavOpen()" mode="side" class="shell-sidenav">
-    <mat-nav-list>
-      @for (item of navItems(); track item.link) {
-        <a
-          mat-list-item
-          [routerLink]="item.link"
-          routerLinkActive="shell-nav-active"
-          [routerLinkActiveOptions]="{ exact: item.link === '/dashboard' }"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
+  <mat-sidenav
+    class="shell-sidenav"
+    [class.shell-sidenav-rail]="!showLabels()"
+    [opened]="drawerOpened()"
+    [mode]="drawerMode()"
+    (closedStart)="drawerOpen.set(false)"
+  >
+    <nav class="shell-nav" aria-label="Main">
+      <mat-nav-list>
+        @for (item of navItems(); track item.link) {
+          <a
+            mat-list-item
+            [routerLink]="item.link"
+            routerLinkActive="shell-nav-active"
+            [routerLinkActiveOptions]="{ exact: item.link === '/dashboard' }"
+            [matTooltip]="showLabels() ? '' : item.label"
+            matTooltipPosition="right"
+            [attr.aria-label]="item.label"
+          >
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            @if (showLabels()) {
+              <span matListItemTitle>{{ item.label }}</span>
+            }
+          </a>
+        }
+      </mat-nav-list>
+
+      @if (isCoach()) {
+        <div class="shell-nav-cta">
+          <a
+            mat-flat-button
+            routerLink="/dashboard/register-member"
+            [matTooltip]="showLabels() ? '' : 'Register a member'"
+            matTooltipPosition="right"
+          >
+            <mat-icon>person_add</mat-icon>
+            @if (showLabels()) {
+              <span>Register a member</span>
+            }
+          </a>
+        </div>
       }
-    </mat-nav-list>
+    </nav>
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-content">
-    <main class="container-fluid py-4">
+    <main class="shell-main tcm-page">
       <router-outlet />
     </main>
   </mat-sidenav-content>

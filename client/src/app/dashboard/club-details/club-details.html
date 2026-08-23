@@ -1,0 +1,224 @@
+<app-page-header
+  [title]="'Welcome back, ' + firstName()"
+  [subtitle]="
+    isCoach() ? 'How the club is doing, and what is coming up.' : 'How your club is doing.'
+  "
+>
+  @if (isCoach()) {
+    <a mat-stroked-button routerLink="/dashboard/trainings">
+      <mat-icon aria-hidden="true">calendar_month</mat-icon>
+      <span>All trainings</span>
+    </a>
+  }
+</app-page-header>
+
+<form class="cd-filters tcm-panel" [formGroup]="filters">
+  <p class="cd-filters-label">Showing</p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Year</mat-label>
+    <mat-select formControlName="year">
+      <mat-option [value]="null">All time</mat-option>
+      @for (year of years; track year) {
+        <mat-option [value]="year">{{ year }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Month</mat-label>
+    <mat-select formControlName="month">
+      <mat-option [value]="null">Every month</mat-option>
+      @for (month of months; track month.value) {
+        <mat-option [value]="month.value">{{ month.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (filters.value.year || filters.value.month) {
+    <button mat-stroked-button type="button" class="cd-clear" (click)="clearFilters()">
+      <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+      <span>Clear</span>
+    </button>
+  }
+</form>
+
+@if (loading() || error()) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      [skeleton]="true"
+      [skeletonRows]="4"
+      skeletonVariant="card"
+      loadingMessage="Loading the club's figures…"
+      errorTitle="The dashboard could not be loaded"
+      (retry)="reload()"
+    />
+  </div>
+} @else if (numbers(); as stats) {
+  <div class="cd-stats tcm-stagger">
+    <app-stat-card icon="group" label="Members" [value]="stats.totalMembers" />
+    <app-stat-card icon="how_to_reg" label="Active" [value]="stats.activeMembers" />
+    <app-stat-card
+      icon="sports_martial_arts"
+      label="Trainings held"
+      [value]="stats.trainingsHeld"
+    />
+    <app-stat-card
+      icon="insights"
+      label="Attendance"
+      [value]="stats.attendancePercentage.toFixed(0)"
+      suffix="%"
+    />
+  </div>
+
+  <div class="cd-grid">
+    <figure class="cd-chart tcm-panel">
+      <figcaption>Trainings per month</figcaption>
+
+      @if (stats.trainingsPerMonth.length === 0) {
+        <app-state-panel
+          emptyTitle="No sessions yet"
+          emptyMessage="Once trainings are recorded, this chart shows how busy each month was."
+          emptyIcon="bar_chart"
+        />
+      } @else {
+        <div class="cd-chart-box">
+          <app-chart
+            type="bar"
+            [data]="trainingsChart()"
+            [options]="chartOptions"
+            [ariaLabel]="trainingsChartLabel()"
+          />
+        </div>
+      }
+    </figure>
+
+    @if (isCoach()) {
+      <section class="cd-next tcm-panel">
+        <h2 class="cd-section-title">Next session</h2>
+
+        @if (nextTraining(); as next) {
+          <a class="cd-next-name" [routerLink]="['/dashboard/trainings', next.id]">
+            {{ next.description }}
+          </a>
+          <p class="cd-next-when">
+            {{ next.date | date: 'EEEE d MMMM' }} at {{ next.date | date: 'HH:mm' }}
+          </p>
+
+          @if (countdown(); as left) {
+            <div class="cd-countdown" role="timer">
+              @if (left.days > 0) {
+                <span class="cd-count"
+                  ><strong>{{ left.days }}</strong> {{ left.days === 1 ? 'day' : 'days' }}</span
+                >
+              }
+              <span class="cd-count"
+                ><strong>{{ left.hours }}</strong> {{ left.hours === 1 ? 'hour' : 'hours' }}</span
+              >
+              @if (left.days === 0) {
+                <span class="cd-count"
+                  ><strong>{{ left.minutes }}</strong> min</span
+                >
+              }
+            </div>
+          }
+
+          <p class="cd-next-invited">{{ next.invitedCount }} invited</p>
+        } @else {
+          <app-state-panel
+            emptyTitle="Nothing scheduled"
+            emptyMessage="There is no upcoming session in the period you are looking at."
+            emptyIcon="event_available"
+          />
+        }
+      </section>
+
+      <section class="cd-search tcm-panel">
+        <h2 class="cd-section-title">Find a member</h2>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Search by name or email</mat-label>
+          <input matInput type="search" [formControl]="memberSearch" placeholder="Start typing…" />
+          <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+          @if (memberSearch.value) {
+            <button matSuffix mat-icon-button aria-label="Clear search" (click)="clearSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </mat-form-field>
+
+        @if (memberSearch.value.trim().length >= 2) {
+          @if (searching()) {
+            <p class="cd-search-note" role="status">Searching…</p>
+          } @else if (matches().length === 0) {
+            <p class="cd-search-note">Nobody matches that.</p>
+          } @else {
+            <ul class="cd-matches">
+              @for (member of matches(); track member.id) {
+                <li>
+                  <a class="cd-match" [routerLink]="['/dashboard/members', member.id]">
+                    <app-member-avatar
+                      [firstName]="member.firstName"
+                      [lastName]="member.lastName"
+                      [photoPublicId]="member.photoPublicId"
+                      [size]="32"
+                    />
+                    <span class="cd-match-text">
+                      <span class="cd-match-name"
+                        >{{ member.firstName }} {{ member.lastName }}</span
+                      >
+                      <span class="cd-match-email">{{ member.email }}</span>
+                    </span>
+                    <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <p class="cd-search-note">Type at least two characters.</p>
+        }
+      </section>
+
+      <section class="cd-upcoming tcm-panel">
+        <h2 class="cd-section-title">Coming up</h2>
+
+        @if (upcoming().length === 0) {
+          <app-state-panel
+            emptyTitle="Nothing on the calendar"
+            emptyMessage="Sessions you schedule appear here, soonest first."
+            emptyIcon="event_note"
+          />
+        } @else {
+          <ul class="cd-upcoming-list">
+            @for (training of upcoming(); track training.id) {
+              <li>
+                <a class="cd-upcoming-item" [routerLink]="['/dashboard/trainings', training.id]">
+                  <span class="cd-upcoming-date">
+                    <span class="cd-upcoming-day">{{ training.date | date: 'd' }}</span>
+                    <span class="cd-upcoming-month">{{ training.date | date: 'MMM' }}</span>
+                  </span>
+
+                  <span class="cd-upcoming-text">
+                    <span class="cd-upcoming-name">{{ training.description }}</span>
+                    <span class="cd-upcoming-meta">
+                      {{ training.date | date: 'HH:mm' }} · {{ training.invitedCount }} invited
+                    </span>
+                  </span>
+
+                  <app-status-chip
+                    [label]="statusOf(training).label"
+                    [tone]="statusOf(training).tone"
+                    [icon]="statusOf(training).icon"
+                  />
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+}

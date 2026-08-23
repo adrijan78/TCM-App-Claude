@@ -181,6 +181,27 @@ Login, forgot password, reset password (reading email and token from the URL), a
 **Agent:** `angular-feature-builder`. **Skills:** `tcm-angular-feature`, `tcm-auth`.
 **Exit:** Full round trip works against the real API: log in as the seeded coach, register a member, reset that member's password by email link.
 
+### Phase 8b — Visual design pass
+
+**Goal:** an app that looks designed rather than scaffolded, and **one visual language that every screen after this inherits**. This sits between phases 8 and 9 on purpose: the five feature modules of phase 9 are the bulk of the UI, and they should be built *on* the design system rather than restyled afterwards.
+
+1. **Theme and tokens.** Replace the CLI's default azure palette with a club identity — a Material 3 palette from a chosen seed colour, plus semantic tokens for the states this app repeats over and over: training finished / active / cancelled, note priority High / Medium / Low, attendance present / absent / invited, membership paid / due / overdue. Defined once in `styles.scss` as CSS custom properties, so no component ever invents a colour.
+2. **Type and spacing scale.** One type ramp and one spacing scale, both expressed as tokens. Ad-hoc `rem` values come out of the component styles written in phases 7 and 8.
+3. **Light and dark.** `color-scheme: light dark`, both palettes checked for contrast — WCAG AA on text, 3:1 on UI borders and chart marks — and a toggle in the shell that remembers the choice.
+4. **Chrome.** Rework the shell: an icon rail that collapses on narrow screens, a real club mark, a consistent page-header pattern (title, subtitle, primary action), and an account menu showing the member's photo.
+5. **Component styling.** Shared card, table, chip and badge treatments — statuses and priorities become chips, not bare text — plus skeleton loaders for table and card screens, replacing `StatePanel`'s bare spinner where a shape can be predicted.
+6. **Chart theme.** One Chart.js defaults object — palette, fonts, grid, tooltip — so the charts in 6.2 and 6.4 read as one family. Colour is never the only encoding.
+7. **Motion.** Route and list transitions in **CSS only** (Material 22 dropped `@angular/animations`; see the version-drift traps in `CLAUDE.md`), short, and switched off under `prefers-reduced-motion`.
+8. **Empty and error states with character.** Per-screen wording and imagery in `StatePanel` instead of one generic icon — an empty member list and a failed payment load should not look identical.
+9. **Responsive sweep** at 360, 768, 1024 and 1440 px, with Playwright screenshots recorded as the visual baseline.
+10. **Retro-fit** all of the above onto what exists at this point: the shell, the four auth screens, `not-found`.
+
+**Agent:** `angular-feature-builder`. **Skills:** `tcm-angular-feature`.
+**Plugins:** `frontend-design` (leads this phase), `modern-web-guidance`, `playwright` for the screenshots.
+**Exit:** `ng build` and `npm run test:ci` clean; the token file is the only place a colour, radius or spacing value is declared; both themes pass contrast; the shell and every phase-8 screen use the new system; screenshots recorded at four widths. Phase 9 then builds on this system rather than beside it.
+
+**Contrast is checked, not asserted.** `npm run check:contrast` reads the *compiled* stylesheet, pulls both halves out of every `light-dark()` declaration and measures each pair. Run it after any token change — it is the only thing standing between a palette that looks fine on the machine it was picked on and one that works.
+
 ### Phase 9 — Feature screens *(parallelizable)*
 
 **Goal:** spec sections 6.2 – 6.8 in the browser.
@@ -195,7 +216,7 @@ Login, forgot password, reset password (reading email and token from the URL), a
 
 **Agents:** parallel `angular-feature-builder` instances, one module each.
 **Skills:** `tcm-angular-feature`, `tcm-stripe-payments`. **Plugins:** `frontend-design`, `context7`.
-**Exit:** Every screen renders real data, handles loading/empty/error, and confirms before destructive actions.
+**Exit:** Every screen renders real data, handles loading/empty/error, confirms before destructive actions, and uses phase 8b's tokens and shared patterns — no module introduces a colour, spacing value or status treatment of its own.
 
 ### Phase 10 — The member experience
 
@@ -240,14 +261,14 @@ Phase 0 → 1 → 2 → 3 → 4
                       ├─ Phase 5  (integrations)
                       └─ Phase 6  (Members ∥ Trainings ∥ Payments ∥ Notes)
                                  ↓
-                        Phase 7 → 8
-                                 ↓
+                        Phase 7 → 8 → 8b  (design system)
+                                       ↓
                         Phase 9  (5 modules in parallel)
                                  ↓
                         Phase 10 → 11 → 12
 ```
 
-Phases 0–4 are strictly sequential: they set versions, layout, schema and house style, and every later phase copies them. The parallel opportunities are phase 6 (four backend domains) and phase 9 (five Angular modules).
+Phases 0–4 are strictly sequential: they set versions, layout, schema and house style, and every later phase copies them. Phase 8b is sequential for the same reason — it sets the visual house style that phase 9 copies. The parallel opportunities are phase 6 (four backend domains) and phase 9 (five Angular modules).
 
 ## 4. Conventions that hold across every phase
 
@@ -266,9 +287,23 @@ Phases 0–4 are strictly sequential: they set versions, layout, schema and hous
 | Timestamps are UTC `DateTime`, not `DateTimeOffset` | 2026-08-22 | EF Core 10 cannot translate `DateTimeOffset.Year`/`.Month` in a `GroupBy`, which section 6.2's chart requires |
 | No `PasswordSalt` column | 2026-08-22 | Identity's hasher embeds the salt in `PasswordHash`; a separate column would always be empty |
 | `Payments.StripeSessionId` added | 2026-08-22 | The idempotency key section 3.2 needs so a retried webhook cannot double-write a payment |
+| A 401 from `/account/login`, `/account/forgot-password` or `/account/reset-password` is **not** treated as an expired session | 2026-08-23 | Found building phase 8. The error interceptor was clearing storage and redirecting to a login page the user was already standing on, over a simple wrong password. Those three endpoints now report inline; `/account/register` is deliberately excluded because it is coach-authenticated, so a 401 there really is a lost session |
+| 400 responses are left to the screen that raised them | 2026-08-23 | A rejected form belongs beside the form. A snackbar has faded by the time the user has finished reading the field errors |
+| Belts and roles cached for the session in `CommonService`, cleared on logout | 2026-08-23 | Every form with a belt dropdown would otherwise refetch the same nine rows. Roles are coach-only, so the cache must not survive a sign-out |
+| Design gets its own phase (8b) rather than being folded into phase 9 | 2026-08-23 | User's call: the app has to look good in use. Doing it before the five feature modules means one visual language they all inherit, instead of five that need reconciling |
+| Custom M3 palette: primary `#1B3A6B`, tertiary `#B8860B` | 2026-08-23 | The CLI's default azure reads as "an Angular app". Navy and gold are the club's own; gold rather than a second red keeps the tertiary from colliding with error and the critical signal ramp. Regenerate with `ng generate @angular/material:theme-color` |
+| Barlow Condensed for display/headline, Roboto for body | 2026-08-23 | M3's brand/plain typography split. A condensed face gives a page title presence at small sizes; Roboto is the better read at 14px |
+| Light and dark from `light-dark()` and one `color-scheme` property | 2026-08-23 | Material's system variables already resolve against `color-scheme`, so `ThemeService` setting that one property switches the whole app. No second palette, no theme class to remember, nothing that can drift |
+| Chart palette is Okabe-Ito **darkened for the light theme** | 2026-08-23 | The published values are chosen for colour-blind hue separation, not contrast: orange and sky blue land at ~2.2:1 on white. `npm run check:contrast` caught it; the darkened values clear 3:1 in both themes and stay ≥18 ΔE apart |
+| Route motion via the View Transitions API | 2026-08-23 | Angular Material 22 dropped `@angular/animations`, so `withViewTransitions()` plus CSS is the only route-animation path that does not add a package back |
+| `/dashboard/profile` redirects to `/dashboard/members/<own id>` | 2026-08-23 | "My profile" and "a member's profile" are the same screen from two directions. One component that takes an id beats two that drift apart |
+| The dashboard skips its coach-only panels for a member rather than 403ing | 2026-08-23 | `/dashboard` is the landing page for both roles, but the calendar, countdown and quick search sit behind coach-only endpoints. A member sees the club figures alone until Phase 10 builds them a home page of their own |
+| Chart series colours are assigned by `<app-chart>`, not by callers | 2026-08-23 | Callers pass labels and numbers. It is what keeps a series the same colour on every screen, and what lets the chart recolour itself when the theme flips |
+| Attendance and scores save per row, as they are changed | 2026-08-23 | SPEC 6.6 is a register, not a form. A coach marking twelve people should not have to find a Save button, and a per-row busy flag keeps one slow request from freezing the table |
 
 ## 5. Open items
 
+- **Playwright** is used ad hoc in phase 8b for the visual sweep (`client/scripts/screenshots.mjs`) but is deliberately *not* a project dependency yet — phase 11 installs it properly for `e2e/`. Until then the script documents its own two-line setup.
 - **Hosting** stays undecided by design (spec section 9). Phase 12 makes the app deployment-ready without choosing; revisit once the target is known.
 - ~~**Charting library**~~ — resolved in phase 7: **Chart.js 4**, used directly through the shared `<app-chart>` component rather than via an Angular wrapper library. Calendar colour-coding uses Material's `MatCalendar` with `dateClass`, so no second date dependency.
 - **`gitkraken`** needs a one-time authentication before its git and PR context becomes available.

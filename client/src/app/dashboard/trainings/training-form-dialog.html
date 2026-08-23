@@ -1,0 +1,104 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit training' : 'New training' }}</h2>
+
+<mat-dialog-content>
+  <form class="tf-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error(); as message) {
+      <app-form-alert [message]="message" [details]="errorDetails()" />
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>What is this session?</mat-label>
+      <input
+        matInput
+        formControlName="description"
+        maxlength="200"
+        placeholder="Tuesday sparring"
+        required
+      />
+      @if (form.controls.description.hasError('required')) {
+        <mat-error>Give the session a name.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="tf-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="date" required />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+        @if (form.controls.date.hasError('required')) {
+          <mat-error>Pick a date.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Start time</mat-label>
+        <input matInput type="time" formControlName="time" required />
+        @if (form.controls.time.hasError('required')) {
+          <mat-error>Set a start time.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="tf-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Type</mat-label>
+        <mat-select formControlName="trainingType" required>
+          @for (type of types; track type.value) {
+            <mat-option [value]="type.value">{{ type.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status" required>
+          @for (status of statuses; track status.value) {
+            <mat-option [value]="status.value">{{ status.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <section class="tf-invitees">
+      <header class="tf-invitees-head">
+        <div>
+          <p class="tf-invitees-title">Invitees</p>
+          <p class="tf-invitees-count">
+            {{ selectedCount() }} of {{ invitable().length }} selected
+          </p>
+        </div>
+
+        <div class="tf-invitees-actions">
+          <button mat-button type="button" (click)="inviteEveryone()">Select all</button>
+          <button mat-button type="button" (click)="inviteNobody()">Clear</button>
+        </div>
+      </header>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Who is invited?</mat-label>
+        <mat-select formControlName="memberIds" multiple>
+          @for (member of invitable(); track member.id) {
+            <mat-option [value]="member.id">
+              {{ member.firstName }} {{ member.lastName }}
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          Everyone selected gets an invitation email. Editing replaces the whole list, so unchecking
+          someone uninvites them.
+        </mat-hint>
+      </mat-form-field>
+    </section>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
+  <button mat-flat-button type="button" [disabled]="saving()" (click)="save()">
+    @if (saving()) {
+      <mat-spinner diameter="18" />
+    }
+    <span>{{ isEdit ? 'Save changes' : 'Create training' }}</span>
+  </button>
+</mat-dialog-actions>

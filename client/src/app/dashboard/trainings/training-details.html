@@ -1,0 +1,221 @@
+@if (loading() || error()) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      loadingMessage="Loading the session…"
+      errorTitle="This training could not be opened"
+      (retry)="load()"
+    />
+  </div>
+} @else if (training(); as session) {
+  <app-page-header
+    [title]="session.description"
+    [subtitle]="(session.date | date: 'EEEE d MMMM y') + ' at ' + (session.date | date: 'HH:mm')"
+  >
+    @if (isCoach()) {
+      <a mat-stroked-button routerLink="/dashboard/trainings">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        <span>All trainings</span>
+      </a>
+
+      <button mat-stroked-button (click)="edit()">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        <span>Edit</span>
+      </button>
+
+      <button mat-stroked-button (click)="remove()">
+        <mat-icon aria-hidden="true">delete_outline</mat-icon>
+        <span>Delete</span>
+      </button>
+    }
+  </app-page-header>
+
+  <section class="td-summary tcm-panel">
+    <div class="td-chips">
+      @if (trainingStatus(); as status) {
+        <app-status-chip [label]="status.label" [tone]="status.tone" [icon]="status.icon" />
+      }
+      @if (trainingType(); as type) {
+        <app-status-chip [label]="type.label" [tone]="type.tone" [icon]="type.icon" />
+      }
+    </div>
+
+    <dl class="td-facts">
+      <div>
+        <dt>Invited</dt>
+        <dd>{{ attendees().length }}</dd>
+      </div>
+      <div>
+        <dt>Present</dt>
+        <dd>{{ presentCount() }}</dd>
+      </div>
+      <div>
+        <dt>Absent</dt>
+        <dd>{{ absentCount() }}</dd>
+      </div>
+      <div>
+        <dt>Turnout</dt>
+        <dd>{{ turnout() }}%</dd>
+      </div>
+      @if (isCoach()) {
+        <div>
+          <dt>Average score</dt>
+          <dd>
+            @if (averageScore(); as average) {
+              {{ average.toFixed(1) }}<span class="td-suffix">/10</span>
+            } @else {
+              —
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  @if (attendees().length === 0) {
+    <div class="tcm-panel">
+      <app-state-panel
+        emptyTitle="Nobody was invited"
+        emptyMessage="Edit the session to invite members. Everyone you add gets an invitation email."
+        emptyIcon="group_off"
+        [emptyActionLabel]="isCoach() ? 'Invite members' : ''"
+        emptyActionIcon="person_add"
+        (emptyAction)="edit()"
+      />
+    </div>
+  } @else {
+    <div class="tcm-panel td-table-panel">
+      <div class="td-table-head">
+        <h2 class="td-section-title">Attendance</h2>
+        <p class="td-hint">
+          @if (isCoach()) {
+            Mark who turned up, and score them out of ten. Changes save as you make them.
+          } @else {
+            Report whether you made it to this session.
+          }
+        </p>
+      </div>
+
+      <div class="tcm-scroll-x">
+        <table mat-table [dataSource]="attendees()" class="td-table">
+          <ng-container matColumnDef="member">
+            <th mat-header-cell *matHeaderCellDef>Member</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="td-person">
+                <app-member-avatar
+                  [firstName]="row.firstName"
+                  [lastName]="row.lastName"
+                  [size]="32"
+                />
+                <a class="td-name" [routerLink]="['/dashboard/members', row.memberId]">
+                  {{ row.firstName }} {{ row.lastName }}
+                </a>
+                @if (row.memberId === myId()) {
+                  <span class="td-you">You</span>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Attendance</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="td-status">
+                <app-status-chip
+                  [label]="statusOf(row).label"
+                  [tone]="statusOf(row).tone"
+                  [icon]="statusOf(row).icon"
+                />
+
+                @if (canReport(row)) {
+                  <span class="td-report">
+                    <button
+                      mat-icon-button
+                      [disabled]="isSaving(row)"
+                      matTooltip="Mark present"
+                      [attr.aria-label]="'Mark ' + row.firstName + ' ' + row.lastName + ' present'"
+                      [attr.aria-pressed]="row.status === AttendanceStatus.Present"
+                      [class.td-picked]="row.status === AttendanceStatus.Present"
+                      (click)="report(row, AttendanceStatus.Present)"
+                    >
+                      <mat-icon>check_circle</mat-icon>
+                    </button>
+
+                    <button
+                      mat-icon-button
+                      [disabled]="isSaving(row)"
+                      matTooltip="Mark absent"
+                      [attr.aria-label]="'Mark ' + row.firstName + ' ' + row.lastName + ' absent'"
+                      [attr.aria-pressed]="row.status === AttendanceStatus.Absent"
+                      [class.td-picked]="row.status === AttendanceStatus.Absent"
+                      (click)="report(row, AttendanceStatus.Absent)"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </span>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="reason">
+            <th mat-header-cell *matHeaderCellDef>Reason</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.status === AttendanceStatus.Absent && canReport(row)) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="td-reason">
+                  <input
+                    matInput
+                    type="text"
+                    placeholder="Injured, away…"
+                    [value]="row.absenceReason ?? ''"
+                    [disabled]="isSaving(row)"
+                    [attr.aria-label]="'Reason ' + row.firstName + ' was absent'"
+                    (blur)="saveReason(row, $any($event.target).value)"
+                    (keydown.enter)="$any($event.target).blur()"
+                  />
+                </mat-form-field>
+              } @else if (row.absenceReason) {
+                <span class="td-reason-text">{{ row.absenceReason }}</span>
+              } @else {
+                <span class="td-none">—</span>
+              }
+            </td>
+          </ng-container>
+
+          @if (isCoach()) {
+            <ng-container matColumnDef="performance">
+              <th mat-header-cell *matHeaderCellDef>Score</th>
+              <td mat-cell *matCellDef="let row" class="td-score-cell">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="td-score">
+                  <mat-select
+                    [value]="row.performance"
+                    [disabled]="isSaving(row) || row.status !== AttendanceStatus.Present"
+                    [attr.aria-label]="'Score for ' + row.firstName + ' ' + row.lastName"
+                    (selectionChange)="setPerformance(row, $event.value)"
+                  >
+                    @for (score of scores; track score) {
+                      <mat-option [value]="score">{{ score }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <button
+                  mat-icon-button
+                  matTooltip="Write a note about this session"
+                  [attr.aria-label]="'Write a note about ' + row.firstName + ' ' + row.lastName"
+                  (click)="addNote(row)"
+                >
+                  <mat-icon>edit_note</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+          }
+
+          <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+        </table>
+      </div>
+    </div>
+  }
+}

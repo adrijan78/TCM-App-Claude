@@ -1,0 +1,55 @@
+.tf-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-2);
+  min-inline-size: min(32rem, 76vw);
+  padding-block-start: var(--tcm-space-2);
+}
+
+.tf-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-3);
+}
+
+.tf-row mat-form-field {
+  flex: 1 1 11rem;
+}
+
+.tf-invitees {
+  margin-block-start: var(--tcm-space-2);
+  padding: var(--tcm-space-3);
+  border: 1px solid var(--tcm-panel-border);
+  border-radius: var(--tcm-radius-md);
+}
+
+.tf-invitees-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tcm-space-2);
+  margin-block-end: var(--tcm-space-3);
+}
+
+.tf-invitees-title {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+}
+
+.tf-invitees-count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.tf-invitees-actions {
+  display: flex;
+  gap: var(--tcm-space-1);
+}
+
+button[mat-flat-button] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}

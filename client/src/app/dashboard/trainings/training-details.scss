@@ -1,0 +1,131 @@
+.td-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-5);
+  margin-block-end: var(--tcm-space-5);
+}
+
+.td-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-2);
+}
+
+.td-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-5);
+  margin: 0;
+  margin-inline-start: auto;
+
+  dt {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-label-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  dd {
+    margin: 0;
+    font-family: 'Barlow Condensed', Roboto, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+}
+
+.td-suffix {
+  font-size: 0.875rem;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.td-table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.td-table-head {
+  padding: var(--tcm-space-4);
+  border-block-end: 1px solid var(--tcm-panel-border);
+}
+
+.td-section-title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.td-hint {
+  margin: var(--tcm-space-1) 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.td-table {
+  inline-size: 100%;
+  min-inline-size: 46rem;
+}
+
+.td-person {
+  display: flex;
+  align-items: center;
+  gap: var(--tcm-space-3);
+  padding-block: var(--tcm-space-2);
+}
+
+.td-name {
+  font-weight: 500;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.td-you {
+  padding: 0.0625rem var(--tcm-space-2);
+  border-radius: var(--tcm-radius-pill);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font: var(--mat-sys-label-small);
+}
+
+.td-status {
+  display: flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}
+
+.td-report {
+  display: inline-flex;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* The chosen option keeps its meaning-colour, so the row reads at a glance. */
+.td-picked {
+  color: var(--mat-sys-primary);
+}
+
+.td-reason {
+  inline-size: 12rem;
+}
+
+.td-reason-text {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.td-none {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.td-score-cell {
+  white-space: nowrap;
+}
+
+.td-score {
+  inline-size: 5rem;
+}

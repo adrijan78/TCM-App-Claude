@@ -1,12 +1,53 @@
+:host {
+  display: block;
+}
+
 .shell-toolbar {
   position: sticky;
   top: 0;
   z-index: 10;
-  gap: 0.5rem;
+  block-size: var(--tcm-toolbar-height);
+  gap: var(--tcm-space-2);
+  padding-inline: var(--tcm-space-2);
+  // The toolbar reads as part of the page, not a coloured band across the top. The hairline
+  // is what separates it once the content scrolls under.
+  background: var(--mat-sys-surface);
+  border-block-end: 1px solid var(--tcm-panel-border);
 }
 
-.shell-title {
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell-brand-name {
+  // Below 576px the toolbar has to choose between the club name and the current page, and
+  // the page is the more useful of the two — the mark alone still says whose app this is.
+  display: none;
+
+  @media (min-width: 576px) {
+    display: inline;
+  }
+
   font: var(--mat-sys-title-medium);
+  font-family: 'Barlow Condensed', Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.shell-page-title {
+  margin-inline-start: var(--tcm-space-2);
+  padding-inline-start: var(--tcm-space-2);
+  border-inline-start: 1px solid var(--tcm-panel-border);
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shell-spacer {
@@ -16,7 +57,8 @@
 .shell-account {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--tcm-space-2);
+  padding-inline: var(--tcm-space-2);
 }
 
 .shell-avatar {
@@ -28,9 +70,11 @@
   background: var(--mat-sys-primary-container);
   color: var(--mat-sys-on-primary-container);
   font: var(--mat-sys-label-medium);
+  font-weight: 600;
 }
 
-.shell-account-name {
+.shell-account-name,
+.shell-account-caret {
   // The name is a nicety; the avatar carries the identity on small screens.
   display: none;
 
@@ -39,8 +83,17 @@
   }
 }
 
-.shell-account-role {
-  padding: 0.5rem 1rem;
+.shell-account-head {
+  padding: var(--tcm-space-3) var(--tcm-space-4) var(--tcm-space-2);
+}
+
+.shell-account-head-name {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+}
+
+.shell-account-head-role {
+  margin: 0;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
   text-transform: uppercase;
@@ -49,16 +102,36 @@
 
 .shell-container {
   // Fill what the toolbar leaves behind.
-  block-size: calc(100dvh - 64px);
+  block-size: calc(100dvh - var(--tcm-toolbar-height));
+  background: var(--tcm-page-bg);
 }
 
 .shell-sidenav {
-  inline-size: 15rem;
-  border-inline-end: 1px solid var(--mat-sys-outline-variant);
+  inline-size: var(--tcm-sidenav-width);
+  padding-block: var(--tcm-space-3);
+  border-inline-end: 1px solid var(--tcm-panel-border);
+  background: var(--mat-sys-surface);
+  transition: inline-size var(--tcm-duration-base) var(--tcm-ease-standard);
+}
+
+.shell-sidenav-rail {
+  inline-size: var(--tcm-sidenav-rail-width);
+
+  .mat-mdc-list-item {
+    justify-content: center;
+  }
+}
+
+.shell-nav {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  gap: var(--tcm-space-2);
 }
 
 .shell-nav-active {
   background: var(--mat-sys-secondary-container);
+  border-radius: var(--tcm-radius-md);
 
   .mat-mdc-list-item-title,
   .mat-icon {
@@ -66,6 +139,29 @@
   }
 }
 
+// The coach's most common action, kept at the foot of the nav where it does not compete
+// with navigation but is never more than one click away.
+.shell-nav-cta {
+  margin-block-start: auto;
+  padding: var(--tcm-space-3);
+
+  a {
+    inline-size: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tcm-space-2);
+  }
+}
+
 .shell-content {
-  background: var(--mat-sys-surface-container-lowest);
+  background: var(--tcm-page-bg);
+}
+
+.shell-main {
+  padding: var(--tcm-space-5) var(--tcm-space-4) var(--tcm-space-8);
+
+  @media (min-width: 768px) {
+    padding-inline: var(--tcm-space-6);
+  }
 }

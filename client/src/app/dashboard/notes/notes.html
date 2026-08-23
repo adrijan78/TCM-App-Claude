@@ -1,0 +1,55 @@
+<app-page-header
+  title="Notes"
+  subtitle="Everything written about members of this club, most urgent first."
+>
+  <button mat-flat-button (click)="addNote()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    <span>New note</span>
+  </button>
+</app-page-header>
+
+<div class="notes-toolbar tcm-panel">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Search by title</mat-label>
+    <input matInput [formControl]="search" type="search" placeholder="Sparring, grading…" />
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    @if (searchTerm()) {
+      <button matSuffix mat-icon-button aria-label="Clear search" (click)="clearSearch()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (!loading() && !error()) {
+    <p class="notes-count">{{ rows().length }} {{ rows().length === 1 ? 'note' : 'notes' }}</p>
+  }
+</div>
+
+@if (loading() || error() || rows().length === 0) {
+  <app-state-panel
+    [loading]="loading()"
+    [error]="error()"
+    [skeleton]="true"
+    [skeletonRows]="3"
+    skeletonVariant="card"
+    loadingMessage="Loading notes…"
+    errorTitle="The notes could not be loaded"
+    [emptyTitle]="searchTerm() ? 'No notes match that title' : 'No notes yet'"
+    [emptyMessage]="
+      searchTerm()
+        ? 'Try a shorter search, or clear it to see every note in the club.'
+        : 'Notes are how you record what happened at a session, or what a member needs to work on.'
+    "
+    [emptyIcon]="searchTerm() ? 'search_off' : 'sticky_note_2'"
+    [emptyActionLabel]="searchTerm() ? 'Clear search' : 'Write the first note'"
+    [emptyActionIcon]="searchTerm() ? 'close' : 'add'"
+    (retry)="reload()"
+    (emptyAction)="searchTerm() ? clearSearch() : addNote()"
+  />
+} @else {
+  <div class="notes-grid tcm-stagger">
+    @for (note of rows(); track note.id) {
+      <app-note-card [note]="note" [canDelete]="true" (remove)="remove($event)" />
+    }
+  </div>
+}

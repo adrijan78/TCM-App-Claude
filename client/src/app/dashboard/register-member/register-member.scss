@@ -1,0 +1,69 @@
+/* Header and form share one measure, so the "All members" button lines up with the right
+   edge of the fieldsets instead of drifting off toward the page margin on a wide screen. */
+.register-page {
+  max-inline-size: 58rem;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tcm-space-5);
+}
+
+.register-section {
+  // A fieldset needs these three to behave like an ordinary block.
+  margin: 0;
+  min-inline-size: 0;
+  padding: var(--tcm-space-5);
+  border: 1px solid var(--tcm-panel-border);
+  border-radius: var(--tcm-radius-lg);
+  background: var(--tcm-panel-bg);
+  box-shadow: var(--tcm-shadow-1);
+}
+
+.register-legend {
+  float: none;
+  inline-size: auto;
+  padding-inline: var(--tcm-space-2);
+  margin-inline-start: calc(var(--tcm-space-2) * -1);
+  margin-block-end: var(--tcm-space-2);
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.register-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}
+
+.register-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-2);
+  margin: var(--tcm-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: var(--tcm-space-1) var(--tcm-space-3);
+    border-radius: var(--tcm-radius-pill);
+    background: var(--tcm-quiet-container);
+    color: var(--tcm-on-quiet-container);
+    font: var(--mat-sys-label-small);
+  }
+}
+
+.register-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tcm-space-3);
+}
+
+.register-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}

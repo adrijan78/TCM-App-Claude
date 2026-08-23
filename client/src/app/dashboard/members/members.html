@@ -1,0 +1,162 @@
+<app-page-header title="Members" subtitle="Everyone who trains at this club, past and present.">
+  <a mat-flat-button routerLink="/dashboard/register-member">
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+    <span>Register a member</span>
+  </a>
+</app-page-header>
+
+<form class="mem-filters tcm-panel" [formGroup]="filters">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mem-search">
+    <mat-label>Search by name or email</mat-label>
+    <input matInput type="search" formControlName="search" placeholder="Marko, ana@…" />
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Belt</mat-label>
+    <mat-select formControlName="beltId">
+      <mat-option [value]="null">Any belt</mat-option>
+      @for (belt of belts(); track belt.id) {
+        <mat-option [value]="belt.id">{{ belt.beltName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Age group</mat-label>
+    <mat-select formControlName="ageGroup">
+      <mat-option [value]="null">Any age</mat-option>
+      @for (group of ageGroups; track group.value) {
+        <mat-option [value]="group.value">{{ group.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (hasFilters()) {
+    <button mat-stroked-button type="button" class="mem-clear" (click)="clearFilters()">
+      <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+      <span>Clear</span>
+    </button>
+  }
+</form>
+
+@if (loading() || error() || rows().length === 0) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      [skeleton]="true"
+      [skeletonRows]="6"
+      loadingMessage="Loading members…"
+      errorTitle="The member list could not be loaded"
+      [emptyTitle]="hasFilters() ? 'No members match those filters' : 'No members yet'"
+      [emptyMessage]="
+        hasFilters()
+          ? 'Try a different name, belt or age group — or clear the filters to see everyone.'
+          : 'There is no public sign-up, so the club starts when you register its first member.'
+      "
+      [emptyIcon]="hasFilters() ? 'person_search' : 'group'"
+      [emptyActionLabel]="hasFilters() ? 'Clear filters' : ''"
+      emptyActionIcon="filter_alt_off"
+      (retry)="reload()"
+      (emptyAction)="clearFilters()"
+    />
+  </div>
+} @else {
+  <div class="tcm-panel mem-table-panel">
+    <div class="mem-summary">
+      <p>
+        <strong>{{ rows().length }}</strong>
+        {{ rows().length === 1 ? 'member' : 'members' }}
+      </p>
+      <p class="mem-summary-split">
+        {{ activeCount() }} active · {{ rows().length - activeCount() }} inactive
+      </p>
+    </div>
+
+    <div class="tcm-scroll-x">
+      <table mat-table [dataSource]="rows()" class="mem-table">
+        <ng-container matColumnDef="member">
+          <th mat-header-cell *matHeaderCellDef>Member</th>
+          <td mat-cell *matCellDef="let row">
+            <a class="mem-person" [routerLink]="['/dashboard/members', row.id]">
+              <app-member-avatar
+                [firstName]="row.firstName"
+                [lastName]="row.lastName"
+                [photoPublicId]="row.photoPublicId"
+                [size]="36"
+              />
+              <span class="mem-person-text">
+                <span class="mem-name">{{ row.firstName }} {{ row.lastName }}</span>
+                <span class="mem-email">{{ row.email }}</span>
+              </span>
+            </a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="belt">
+          <th mat-header-cell *matHeaderCellDef>Belt</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.currentBelt; as belt) {
+              <app-belt-swatch [beltName]="belt.beltName" />
+            } @else {
+              <span class="mem-none">Not graded</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="age">
+          <th mat-header-cell *matHeaderCellDef>Age</th>
+          <td mat-cell *matCellDef="let row" class="tcm-numeric">{{ row.age }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.isCoach) {
+              <app-status-chip label="Coach" tone="info" icon="shield" />
+            } @else if (row.isActive) {
+              <app-status-chip label="Active" tone="positive" icon="check_circle" />
+            } @else {
+              <app-status-chip label="Inactive" tone="quiet" icon="do_not_disturb_on" />
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>
+            <span class="tcm-visually-hidden">Actions</span>
+          </th>
+          <td mat-cell *matCellDef="let row" class="mem-actions">
+            <a
+              mat-icon-button
+              [routerLink]="['/dashboard/members', row.id]"
+              matTooltip="Open profile"
+              [attr.aria-label]="'Open the profile of ' + row.firstName + ' ' + row.lastName"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </a>
+
+            @if (row.isActive && !row.isCoach) {
+              <button
+                mat-icon-button
+                matTooltip="Deactivate member"
+                [attr.aria-label]="'Deactivate ' + row.firstName + ' ' + row.lastName"
+                (click)="deactivate(row)"
+              >
+                <mat-icon>person_off</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: columns"
+          [class.mem-row-inactive]="!row.isActive"
+        ></tr>
+      </table>
+    </div>
+  </div>
+}

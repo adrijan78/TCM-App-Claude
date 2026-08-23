@@ -1,0 +1,143 @@
+<app-page-header title="Payments" subtitle="Every membership payment recorded for this club.">
+  <button mat-flat-button (click)="logCash()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    <span>Log cash payment</span>
+  </button>
+</app-page-header>
+
+<form class="pay-filters tcm-panel" [formGroup]="filters">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Year</mat-label>
+    <mat-select formControlName="year">
+      <mat-option [value]="null">Any year</mat-option>
+      @for (year of years; track year) {
+        <mat-option [value]="year">{{ year }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Month</mat-label>
+    <mat-select formControlName="month">
+      <mat-option [value]="null">Any month</mat-option>
+      @for (month of months; track month.value) {
+        <mat-option [value]="month.value">{{ month.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Member</mat-label>
+    <mat-select formControlName="memberId">
+      <mat-option [value]="null">Everyone</mat-option>
+      @for (member of memberList(); track member.id) {
+        <mat-option [value]="member.id">{{ member.firstName }} {{ member.lastName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Method</mat-label>
+    <mat-select formControlName="method">
+      <mat-option [value]="null">Cash and online</mat-option>
+      <mat-option [value]="0">Cash</mat-option>
+      <mat-option [value]="1">Online</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  @if (hasFilters()) {
+    <button mat-stroked-button type="button" class="pay-clear" (click)="clearFilters()">
+      <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+      <span>Clear</span>
+    </button>
+  }
+</form>
+
+@if (loading() || error() || rows().length === 0) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      [skeleton]="true"
+      [skeletonRows]="6"
+      loadingMessage="Loading payments…"
+      errorTitle="The payments could not be loaded"
+      [emptyTitle]="hasFilters() ? 'No payments match those filters' : 'No payments recorded yet'"
+      [emptyMessage]="
+        hasFilters()
+          ? 'Widen the year, month, member or method and the matching payments appear here.'
+          : 'Log a cash payment, or wait for a member to pay their membership fee online.'
+      "
+      [emptyIcon]="hasFilters() ? 'filter_alt_off' : 'receipt_long'"
+      [emptyActionLabel]="hasFilters() ? 'Clear filters' : 'Log a cash payment'"
+      [emptyActionIcon]="hasFilters() ? 'filter_alt_off' : 'add'"
+      (retry)="reload()"
+      (emptyAction)="hasFilters() ? clearFilters() : logCash()"
+    />
+  </div>
+} @else {
+  <div class="tcm-panel pay-table-panel">
+    <div class="pay-summary">
+      <p>
+        <strong>{{ rows().length }}</strong>
+        {{ rows().length === 1 ? 'payment' : 'payments' }}
+      </p>
+      <p class="pay-summary-split">
+        {{ onlineCount() }} online · {{ rows().length - onlineCount() }} cash
+      </p>
+    </div>
+
+    <div class="tcm-scroll-x">
+      <table mat-table [dataSource]="rows()" class="pay-table">
+        <ng-container matColumnDef="member">
+          <th mat-header-cell *matHeaderCellDef>Member</th>
+          <td mat-cell *matCellDef="let row">
+            <a [routerLink]="['/dashboard/members', row.memberId]" class="pay-member">
+              {{ row.memberFullName }}
+            </a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="paidOn">
+          <th mat-header-cell *matHeaderCellDef>Paid on</th>
+          <td mat-cell *matCellDef="let row">{{ row.paymentDate | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="nextDue">
+          <th mat-header-cell *matHeaderCellDef>Next due</th>
+          <td mat-cell *matCellDef="let row">{{ row.nextPaymentDate | date: 'd MMM y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="method">
+          <th mat-header-cell *matHeaderCellDef>Method</th>
+          <td mat-cell *matCellDef="let row">
+            <app-status-chip
+              [label]="method(row).label"
+              [tone]="method(row).tone"
+              [icon]="method(row).icon"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>
+            <span class="tcm-visually-hidden">Actions</span>
+          </th>
+          <td mat-cell *matCellDef="let row" class="pay-actions">
+            <button
+              mat-icon-button
+              matTooltip="Delete payment"
+              [attr.aria-label]="'Delete the payment for ' + row.memberFullName"
+              (click)="remove(row)"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+  </div>
+}

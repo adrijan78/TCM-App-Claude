@@ -1,0 +1,426 @@
+@if (loading() || error()) {
+  <div class="tcm-panel">
+    <app-state-panel
+      [loading]="loading()"
+      [error]="error()"
+      loadingMessage="Loading profile…"
+      errorTitle="This profile could not be opened"
+      (retry)="loadMember()"
+    />
+  </div>
+} @else if (member(); as person) {
+  <app-page-header [title]="person.firstName + ' ' + person.lastName" [subtitle]="person.email">
+    @if (isCoach()) {
+      <a mat-stroked-button routerLink="/dashboard/members">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        <span>All members</span>
+      </a>
+    }
+
+    @if (isCoach() || isSelf()) {
+      <button mat-stroked-button (click)="edit()">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        <span>Edit details</span>
+      </button>
+    }
+
+    @if (isCoach() && person.isActive && !person.isCoach) {
+      <button mat-stroked-button (click)="deactivate()">
+        <mat-icon aria-hidden="true">person_off</mat-icon>
+        <span>Deactivate</span>
+      </button>
+    }
+  </app-page-header>
+
+  <section class="prof-head tcm-panel">
+    <div class="prof-identity">
+      <div class="prof-photo">
+        <app-member-avatar
+          [firstName]="person.firstName"
+          [lastName]="person.lastName"
+          [photoPublicId]="person.photoPublicId"
+          [size]="88"
+        />
+
+        @if (isCoach() || isSelf()) {
+          <label class="prof-photo-btn" [class.prof-photo-busy]="uploading()">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              class="tcm-visually-hidden"
+              [disabled]="uploading()"
+              (change)="uploadPhoto($event)"
+            />
+            <mat-icon aria-hidden="true">photo_camera</mat-icon>
+            <span class="tcm-visually-hidden">Change photo</span>
+          </label>
+        }
+      </div>
+
+      <div class="prof-chips">
+        @if (person.currentBelt; as belt) {
+          <app-belt-swatch [beltName]="belt.beltName" />
+        }
+        @if (person.isCoach) {
+          <app-status-chip label="Coach" tone="info" icon="shield" />
+        } @else if (person.isActive) {
+          <app-status-chip label="Active" tone="positive" icon="check_circle" />
+        } @else {
+          <app-status-chip label="Inactive" tone="quiet" icon="do_not_disturb_on" />
+        }
+      </div>
+    </div>
+
+    <dl class="prof-facts">
+      <div>
+        <dt>Age</dt>
+        <dd>{{ person.age }}</dd>
+      </div>
+      <div>
+        <dt>Member since</dt>
+        <dd>{{ person.startedOn | date: 'MMM y' }}</dd>
+      </div>
+      <div>
+        <dt>Phone</dt>
+        <dd>{{ person.phoneNumber || '—' }}</dd>
+      </div>
+      <div>
+        <dt>Height</dt>
+        <dd>{{ person.height ? person.height + ' cm' : '—' }}</dd>
+      </div>
+      <div>
+        <dt>Weight</dt>
+        <dd>{{ person.weight ? person.weight + ' kg' : '—' }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <mat-tab-group
+    class="prof-tabs"
+    (selectedIndexChange)="onTabChange($event)"
+    animationDuration="0ms"
+  >
+    <!-- ---- Tab 1: attendance and performance (SPEC 6.4) ------------------------------------ -->
+    <mat-tab label="Attendance and performance">
+      <div class="prof-tab tcm-stack">
+        <div class="prof-year">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Year</mat-label>
+            <mat-select [formControl]="yearFilter" (selectionChange)="onYearChange()">
+              <mat-option [value]="null">All time</mat-option>
+              @for (year of years; track year) {
+                <mat-option [value]="year">{{ year }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (summaryLoading() || summaryError()) {
+          <div class="tcm-panel">
+            <app-state-panel
+              [loading]="summaryLoading()"
+              [error]="summaryError()"
+              [skeleton]="true"
+              [skeletonRows]="3"
+              skeletonVariant="card"
+              loadingMessage="Loading attendance…"
+              errorTitle="The attendance figures could not be loaded"
+              (retry)="loadSummary()"
+            />
+          </div>
+        } @else if (summary(); as stats) {
+          <div class="prof-stats tcm-stagger">
+            <app-stat-card label="Invitations" [value]="stats.invitedCount" />
+            <app-stat-card label="Attended" [value]="stats.presentCount" />
+            <app-stat-card
+              label="Attendance rate"
+              [value]="stats.attendancePercentage | number: '1.0-0'"
+              suffix="%"
+            />
+            <app-stat-card
+              label="Average score"
+              [value]="averagePerformance() | number: '1.1-1'"
+              suffix="/10"
+            />
+          </div>
+
+          @if (stats.invitedCount === 0) {
+            <div class="tcm-panel">
+              <app-state-panel
+                emptyTitle="No sessions yet"
+                emptyMessage="Once this member is invited to a training, their attendance and scores appear here."
+                emptyIcon="event_available"
+              />
+            </div>
+          } @else {
+            <div class="prof-charts">
+              <figure class="prof-chart tcm-panel">
+                <figcaption>Attendance per month</figcaption>
+                <div class="prof-chart-box">
+                  <app-chart
+                    type="bar"
+                    [data]="attendanceChart()"
+                    [options]="barOptions"
+                    [ariaLabel]="attendanceChartLabel()"
+                  />
+                </div>
+              </figure>
+
+              <figure class="prof-chart tcm-panel">
+                <figcaption>How invitations ended</figcaption>
+                <div class="prof-chart-box">
+                  <app-chart
+                    type="doughnut"
+                    [data]="splitChart()"
+                    [options]="doughnutOptions"
+                    [ariaLabel]="splitChartLabel()"
+                  />
+                </div>
+              </figure>
+
+              <figure class="prof-chart prof-chart-wide tcm-panel">
+                <figcaption>Performance over time</figcaption>
+                <div class="prof-chart-box">
+                  <app-chart
+                    type="line"
+                    [data]="performanceChart()"
+                    [options]="lineOptions"
+                    [ariaLabel]="performanceChartLabel()"
+                  />
+                </div>
+              </figure>
+            </div>
+
+            <div class="tcm-panel prof-table-panel">
+              <h2 class="prof-section-title">Sessions</h2>
+
+              <div class="tcm-scroll-x">
+                <table mat-table [dataSource]="stats.trainings" class="prof-table">
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef>Date</th>
+                    <td mat-cell *matCellDef="let row">{{ row.date | date: 'd MMM y' }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="description">
+                    <th mat-header-cell *matHeaderCellDef>Session</th>
+                    <td mat-cell *matCellDef="let row">
+                      <a [routerLink]="['/dashboard/trainings', row.trainingId]">
+                        {{ row.description }}
+                      </a>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Session status</th>
+                    <td mat-cell *matCellDef="let row">
+                      <app-status-chip
+                        [label]="trainingStatusOf(row.trainingStatus).label"
+                        [tone]="trainingStatusOf(row.trainingStatus).tone"
+                        [icon]="trainingStatusOf(row.trainingStatus).icon"
+                      />
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="attendance">
+                    <th mat-header-cell *matHeaderCellDef>Attendance</th>
+                    <td mat-cell *matCellDef="let row">
+                      <app-status-chip
+                        [label]="attendanceOf(row.attendanceStatus).label"
+                        [tone]="attendanceOf(row.attendanceStatus).tone"
+                        [icon]="attendanceOf(row.attendanceStatus).icon"
+                      />
+                      @if (row.absenceReason) {
+                        <span class="prof-reason" [matTooltip]="row.absenceReason">
+                          {{ row.absenceReason }}
+                        </span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="performance">
+                    <th mat-header-cell *matHeaderCellDef>Score</th>
+                    <td mat-cell *matCellDef="let row" class="tcm-numeric">
+                      {{ row.performance ?? '—' }}
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="trainingColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: trainingColumns"></tr>
+                </table>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ---- Tab 2: membership (SPEC 6.4) --------------------------------------------------- -->
+    <mat-tab label="Membership">
+      <div class="prof-tab tcm-stack">
+        @if (historyLoading() || historyError()) {
+          <div class="tcm-panel">
+            <app-state-panel
+              [loading]="historyLoading()"
+              [error]="historyError()"
+              [skeleton]="true"
+              [skeletonRows]="4"
+              loadingMessage="Loading payment history…"
+              errorTitle="The payment history could not be loaded"
+              (retry)="loadHistory()"
+            />
+          </div>
+        } @else if (history(); as record) {
+          <app-membership-banner [membership]="record.membership" [canPay]="isSelf()" />
+
+          @if (record.payments.length === 0) {
+            <div class="tcm-panel">
+              <app-state-panel
+                emptyTitle="No payments recorded"
+                [emptyMessage]="
+                  isSelf()
+                    ? 'Once you pay your membership fee, every payment is listed here.'
+                    : 'Log a cash payment from the Payments page, or wait for them to pay online.'
+                "
+                emptyIcon="receipt_long"
+              />
+            </div>
+          } @else {
+            <div class="tcm-panel prof-table-panel">
+              <h2 class="prof-section-title">Payment history</h2>
+
+              <div class="tcm-scroll-x">
+                <table mat-table [dataSource]="record.payments" class="prof-table">
+                  <ng-container matColumnDef="paidOn">
+                    <th mat-header-cell *matHeaderCellDef>Paid on</th>
+                    <td mat-cell *matCellDef="let row">{{ row.paymentDate | date: 'd MMM y' }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="nextDue">
+                    <th mat-header-cell *matHeaderCellDef>Covered until</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.nextPaymentDate | date: 'd MMM y' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="method">
+                    <th mat-header-cell *matHeaderCellDef>Method</th>
+                    <td mat-cell *matCellDef="let row">
+                      <app-status-chip
+                        [label]="methodOf(row).label"
+                        [tone]="methodOf(row).tone"
+                        [icon]="methodOf(row).icon"
+                      />
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="paymentColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: paymentColumns"></tr>
+                </table>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ---- Tab 3: belt exams and notes (SPEC 6.4) ----------------------------------------- -->
+    <mat-tab label="Belt exams and notes">
+      <div class="prof-tab">
+        <div class="prof-split">
+          <section class="prof-belts">
+            <header class="prof-section-head">
+              <h2 class="prof-section-title">Belt exams</h2>
+              @if (isCoach()) {
+                <button mat-stroked-button (click)="addBelt()">
+                  <mat-icon aria-hidden="true">add</mat-icon>
+                  <span>Record exam</span>
+                </button>
+              }
+            </header>
+
+            @if (beltsLoading() || beltsError() || belts().length === 0) {
+              <div class="tcm-panel">
+                <app-state-panel
+                  [loading]="beltsLoading()"
+                  [error]="beltsError()"
+                  [skeleton]="true"
+                  [skeletonRows]="3"
+                  loadingMessage="Loading belt history…"
+                  errorTitle="The belt history could not be loaded"
+                  emptyTitle="No belt exams recorded"
+                  emptyMessage="Every grading this member passes is listed here, newest first."
+                  emptyIcon="military_tech"
+                  (retry)="loadBeltsAndNotes()"
+                />
+              </div>
+            } @else {
+              <ol class="prof-belt-list">
+                @for (belt of belts(); track belt.id) {
+                  <li class="prof-belt tcm-panel" [class.prof-belt-current]="belt.isCurrentBelt">
+                    <div class="prof-belt-main">
+                      <app-belt-swatch [beltName]="belt.belt.beltName" />
+                      @if (belt.isCurrentBelt) {
+                        <app-status-chip label="Current" tone="positive" icon="verified" />
+                      }
+                    </div>
+
+                    <p class="prof-belt-date">{{ belt.dateReceived | date: 'd MMMM y' }}</p>
+
+                    @if (belt.description) {
+                      <p class="prof-belt-note">{{ belt.description }}</p>
+                    }
+
+                    @if (isCoach()) {
+                      <button
+                        mat-icon-button
+                        class="prof-belt-remove"
+                        matTooltip="Remove this exam"
+                        [attr.aria-label]="'Remove the ' + belt.belt.beltName + ' exam'"
+                        (click)="removeBelt(belt)"
+                      >
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          </section>
+
+          <section class="prof-notes">
+            <header class="prof-section-head">
+              <h2 class="prof-section-title">Notes</h2>
+              <button mat-stroked-button (click)="addNote()">
+                <mat-icon aria-hidden="true">add</mat-icon>
+                <span>Write a note</span>
+              </button>
+            </header>
+
+            @if (memberNotes().length === 0) {
+              <div class="tcm-panel">
+                <app-state-panel
+                  emptyTitle="No notes about this member"
+                  emptyMessage="Notes are how the club records progress, injuries and things to work on. High priority ones sort first."
+                  emptyIcon="sticky_note_2"
+                  emptyActionLabel="Write the first note"
+                  (emptyAction)="addNote()"
+                />
+              </div>
+            } @else {
+              <div class="prof-note-list">
+                @for (note of memberNotes(); track note.id) {
+                  <app-note-card
+                    [note]="note"
+                    [showRecipient]="false"
+                    [canDelete]="canDeleteNote(note)"
+                    (remove)="removeNote($event)"
+                  />
+                }
+              </div>
+            }
+          </section>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+}

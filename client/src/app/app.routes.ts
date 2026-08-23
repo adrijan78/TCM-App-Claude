@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './_guards/auth.guard';
 import { coachGuard } from './_guards/coach.guard';
+import { guestGuard } from './_guards/guest.guard';
+import { ownProfileRedirect } from './_guards/own-profile.guard';
 
 /**
  * SPEC section 3.3. Everything under /dashboard is lazy-loaded and sits behind `authGuard`;
@@ -10,7 +12,6 @@ import { coachGuard } from './_guards/coach.guard';
  *   /dashboard/trainings/:id   — training invitation (TrainingService.BuildTrainingLink)
  *   /dashboard/members/:id     — note notification   (NoteService.BuildProfileLink)
  *
- * Routes marked "phase 8" / "phase 9" point at PendingScreen until their screens are built.
  */
 export const routes: Routes = [
   {
@@ -19,27 +20,27 @@ export const routes: Routes = [
     redirectTo: 'dashboard',
   },
 
-  // ---- Authentication (SPEC section 6.1) — screens land in phase 8 --------------------------
+  // ---- Authentication (SPEC section 6.1) ----------------------------------------------------
+  // These render outside `Shell`: there is no navigation to offer someone who is not signed
+  // in. `guestGuard` keeps an existing session from being replaced by a second sign-in.
   {
     path: 'login',
     title: 'Sign in',
-    loadComponent: () =>
-      import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-    data: { title: 'Sign in' },
+    canActivate: [guestGuard],
+    loadComponent: () => import('./login/login').then((m) => m.Login),
   },
   {
     path: 'forgot-password',
     title: 'Forgot password',
-    loadComponent: () =>
-      import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-    data: { title: 'Forgot password' },
+    canActivate: [guestGuard],
+    loadComponent: () => import('./forgot-password/forgot-password').then((m) => m.ForgotPassword),
   },
   {
+    // `email` and `token` come in as query parameters and reach the component as inputs.
     path: 'reset-password',
     title: 'Choose a new password',
-    loadComponent: () =>
-      import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-    data: { title: 'Choose a new password' },
+    canActivate: [guestGuard],
+    loadComponent: () => import('./reset-password/reset-password').then((m) => m.ResetPassword),
   },
 
   // ---- The application shell ----------------------------------------------------------------
@@ -53,15 +54,16 @@ export const routes: Routes = [
         pathMatch: 'full',
         title: 'Home',
         loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Home' },
+          import('./dashboard/club-details/club-details').then((m) => m.ClubDetails),
       },
       {
+        // "My profile" is the same screen as a member profile, resolved to the signed-in
+        // user. `ownProfileRedirect` swaps in their own id so there is one component, not two.
         path: 'profile',
         title: 'My profile',
+        canActivate: [ownProfileRedirect],
         loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'My profile' },
+          import('./dashboard/members/member-profile').then((m) => m.MemberProfile),
       },
 
       // Coach-only areas (SPEC section 5).
@@ -69,9 +71,7 @@ export const routes: Routes = [
         path: 'members',
         canActivate: [coachGuard],
         title: 'Members',
-        loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Members' },
+        loadComponent: () => import('./dashboard/members/members').then((m) => m.Members),
       },
       {
         // Reached from the note-notification email. A member may open their own profile here,
@@ -79,66 +79,60 @@ export const routes: Routes = [
         path: 'members/:id',
         title: 'Member profile',
         loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Member profile' },
+          import('./dashboard/members/member-profile').then((m) => m.MemberProfile),
       },
       {
         path: 'trainings',
         canActivate: [coachGuard],
         title: 'Trainings',
-        loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Trainings' },
+        loadComponent: () => import('./dashboard/trainings/trainings').then((m) => m.Trainings),
       },
       {
         // Reached from the training-invitation email, by an invited member who is not a coach.
         path: 'trainings/:id',
         title: 'Training details',
         loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Training details' },
+          import('./dashboard/trainings/training-details').then((m) => m.TrainingDetailsScreen),
       },
       {
         path: 'payments',
         canActivate: [coachGuard],
         title: 'Payments',
-        loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Payments' },
+        loadComponent: () => import('./dashboard/payments/payments').then((m) => m.Payments),
       },
       {
         path: 'notes',
         canActivate: [coachGuard],
         title: 'Notes',
-        loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Notes' },
+        loadComponent: () => import('./dashboard/notes/notes').then((m) => m.Notes),
       },
       {
         path: 'register-member',
         canActivate: [coachGuard],
         title: 'Register a member',
         loadComponent: () =>
-          import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-        data: { title: 'Register a member' },
+          import('./dashboard/register-member/register-member').then((m) => m.RegisterMember),
       },
     ],
   },
 
   // ---- Stripe return landings (SPEC section 3.2) --------------------------------------------
+  // Behind `authGuard`: confirming a session needs the member's token. These two paths are
+  // fixed — they are configured server-side as `Stripe:SuccessUrl` / `Stripe:CancelUrl`.
+  // `outcome` reaches the component as an input via `withComponentInputBinding`.
   {
     path: 'successful-payment',
+    canActivate: [authGuard],
     title: 'Payment complete',
-    loadComponent: () =>
-      import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-    data: { title: 'Payment complete' },
+    loadComponent: () => import('./dashboard/payments/payment-return').then((m) => m.PaymentReturn),
+    data: { outcome: 'success' },
   },
   {
     path: 'failed-payment',
+    canActivate: [authGuard],
     title: 'Payment cancelled',
-    loadComponent: () =>
-      import('./_shared/components/pending-screen').then((m) => m.PendingScreen),
-    data: { title: 'Payment cancelled' },
+    loadComponent: () => import('./dashboard/payments/payment-return').then((m) => m.PaymentReturn),
+    data: { outcome: 'cancelled' },
   },
 
   {

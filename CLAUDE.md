@@ -103,7 +103,7 @@ See the `tcm-run-local` skill for the full configuration key list, seeded accoun
 
 ## Build status
 
-Phases 0–6 are complete. `dotnet build` is clean and **170 endpoint tests pass**.
+Phases 0–9 are complete. `dotnet build` is clean, **170 endpoint tests pass**, `ng build` is clean and **97 client tests pass**.
 
 - **0–1** versions pinned (.NET 10 LTS, Angular 22), solution scaffolded, client builds.
 - **2** schema from SPEC §4 applied, seeder idempotent.
@@ -111,9 +111,43 @@ Phases 0–6 are complete. `dotnet build` is clean and **170 endpoint tests pass
 - **4** generic repository, FluentValidation at the service boundary, Common reference slice.
 - **5** photos in the database, Stripe behind `Stripe:Enabled`, Gmail SMTP sender.
 - **6** all four backend domains — Members, Trainings/Attendance, Payments, Notes — built in parallel, merged, and audited. Five security findings from that audit are fixed.
-- **7** Angular foundation: `_models` mirroring every server DTO, typed `AuthService`, JWT and error interceptors, `authGuard`/`coachGuard`, the shell with its two role-dependent menus, lazy routing, and the shared `StatePanel` / `ConfirmDialog` / `ChartComponent`. `ng build` clean, **9 client tests pass**.
+- **7** Angular foundation: `_models` mirroring every server DTO, typed `AuthService`, JWT and error interceptors, `authGuard`/`coachGuard`, the shell with its two role-dependent menus, lazy routing, and the shared `StatePanel` / `ConfirmDialog` / `ChartComponent`.
+- **8** auth screens: login, forgot password, reset password and the coach-only registration form, plus `CommonService` (belts/roles/club numbers, cached per session), `guestGuard`, the shared `AuthCard` / `FormAlert` / `Trim` pieces, and the password-policy and field-match validators. Verified end to end against the running API.
 
-Next is Phase 8 (auth screens). See [plan.md](plan.md).
+- **8b** the design system: a custom M3 palette, `src/styles/_tokens.scss` as the single source of colour/space/shape/motion, light and dark from one `color-scheme` property, the reworked shell (icon rail, theme toggle, page title), and the shared `PageHeader` / `StatusChip` / `BeltSwatch` / `Skeleton` / `BrandMark` / chart theme. Contrast verified by `npm run check:contrast`; reviewed at 360/768/1024/1440 in both themes.
+
+- **9** every screen of SPEC 6.2–6.8: the club dashboard, the member list and three-tab profile, trainings as table *and* calendar, training details with attendance and scoring, club-wide payments, and club-wide notes — plus the five typed services, `MemberAvatar`, `NoteCard`, `MembershipBanner`, `StatCard` and the Stripe return landing. Reviewed against real seeded data at 1440 and 390 in both themes, with no console errors and no 4xx/5xx.
+
+Next is Phase 10 (the member experience), then 11 and 12. See [plan.md](plan.md).
+
+### Client conventions set in Phase 9
+
+- **A signal input is not readable in the constructor.** Load from an `effect()` that reads the input and wraps the side effects in `untracked()` — see `member-profile.ts` and `training-details.ts`. This also handles the router reusing a component when only the route parameter changes, which the note-notification email does.
+- **`untracked()` is not optional around signal writes in an effect.** `MemberAvatar` read `objectUrl` inside its own effect (via `release()`) and wrote it from the fetch, so the effect depended on its own output and refetched the photo forever. A spec caught it; the shape to copy is "read the one trigger, `untracked()` everything else".
+- **Chart colours must be resolved through a probe element.** `getComputedStyle().getPropertyValue('--tcm-chart-1')` returns the *specified* value, so a `light-dark(...)` token arrives at Chart.js as a literal string and it silently draws black. `chart-theme.ts` assigns the token to a real `color` property on a hidden span and reads that back.
+- **`<app-member-avatar>` is the only way to show a member photo.** The endpoint is authenticated, so an `img src` cannot reach it; the component fetches the blob and — importantly — revokes the object URL on destroy and on change.
+- **Material's `mat-button-toggle-group` draws its own selection checkmark.** Add `hideSingleSelectionIndicator` when the buttons already carry icons.
+- **Each profile tab fetches only when first opened.** A coach checking a belt history should not pay for three charts and a payment history.
+
+### The design system (Phase 8b)
+
+- **`src/styles/_tokens.scss` is the only place a colour, radius, spacing step, duration or shadow is declared.** A component reaches for the variable. A hex code or a bare `rem` inside a component means the token is missing — add it there instead.
+- **Never write a second palette for dark mode.** Colours are `light-dark()` pairs resolved against `color-scheme` on `<html>`, which `ThemeService` owns. Material's own system variables already work this way, so one property switches everything.
+- **`npm run check:contrast`** parses the *compiled* stylesheet and measures every pair against WCAG AA in both themes. Run it after touching a colour. It is what caught the Okabe-Ito chart palette failing at ~2.2:1 on white.
+- **State is never colour alone.** `<app-status-chip>` requires an icon, and `_shared/status-presentation.ts` holds the one mapping from each domain enum to its tone and glyph. Add a state there, once.
+- **`<app-chart>` themes itself.** It merges `baseChartOptions()`, assigns series colours from the shared palette, and rebuilds on a theme change — so callers pass labels and numbers, not colours.
+- **Motion is CSS only** (Material 22 has no `@angular/animations`); route transitions come from `withViewTransitions()`. Everything is disabled under `prefers-reduced-motion` in `_motion.scss`.
+- **Material's button has two icon slots.** A trailing icon needs `iconPositionEnd` **on the `<mat-icon>`**, not on the button — otherwise it renders before the label regardless of DOM order.
+- **The route title comes from the router snapshot, not `Title.getTitle()`.** Angular's title strategy is itself a `NavigationEnd` subscriber, so reading `Title` in another subscriber can return the previous page's title.
+- **Use `.tcm-visually-hidden`, not `.cdk-visually-hidden`.** The CDK a11y stylesheet is not imported, so the CDK class renders as plain visible text.
+
+### Client conventions set in Phase 8
+
+- **The error interceptor stays quiet for 400s and for 401s from the three anonymous account endpoints.** A rejected login or a spent reset token is the screen's story, not a global snackbar — those screens render it inline with `<app-form-alert>`. `/account/register` is excluded from that exemption because it is coach-authenticated, so a 401 there is a genuinely lost session.
+- **`apiErrorParts(error)` in `_services/unwrap.ts`** is the single place an `HttpErrorResponse`, a network failure or an `unwrap` throw becomes readable text. It returns the message and the field errors separately, because a form renders them separately; `apiErrorMessage()` joins them for a snackbar.
+- **Dates on the wire are `DateOnly` strings** built by `toDateOnly()` from *local* date parts. `toISOString()` would shift a birthday across midnight for anyone west of Greenwich.
+- **`appTrim`** on every email input. `Validators.email` rejects a pasted `" ana@example.test "`, and the user cannot see the difference.
+- **Signal inputs receive query parameters** — `withComponentInputBinding()` is on, so `?returnUrl=`, `?email=` and `?token=` arrive as `input()`s rather than through `ActivatedRoute`. A `returnUrl` is followed only when it starts with a single `/`.
 
 ### Known items carried forward to Phase 12
 

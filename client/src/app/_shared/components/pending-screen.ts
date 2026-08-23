@@ -3,46 +3,60 @@ import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { PageHeader } from './page-header';
+import { Skeleton } from './skeleton';
 
 /**
- * Temporary target for feature routes whose screens land in phases 8 and 9. It exists so the
+ * Temporary target for the feature routes whose screens land in phase 9. It exists so the
  * routing shell, the guards and the two side menus can be wired and tested now, rather than
  * every route pointing at nothing.
  *
+ * It shows the page furniture the real screen will have — header, then a skeleton where the
+ * content goes — so navigating the app before phase 9 gives an honest sense of its shape
+ * rather than a wall of identical "coming soon" cards.
+ *
  * Each of these routes is replaced by its real component as its phase lands; nothing here
- * should survive Phase 9.
+ * should survive phase 9.
  */
 @Component({
   selector: 'app-pending-screen',
-  imports: [MatIconModule],
+  imports: [MatIconModule, PageHeader, Skeleton],
   template: `
-    <section class="pending">
-      <mat-icon class="pending-icon">construction</mat-icon>
-      <h1>{{ title() }}</h1>
-      <p>This screen is built in a later phase of the plan.</p>
-    </section>
+    <app-page-header [title]="title()" subtitle="This screen is built in phase 9 of the plan." />
+
+    <div class="pending tcm-panel">
+      <p class="pending-flag">
+        <mat-icon aria-hidden="true">construction</mat-icon>
+        <span>Not built yet</span>
+      </p>
+
+      <app-skeleton [rowCount]="4" />
+    </div>
   `,
   styles: `
     .pending {
       display: flex;
       flex-direction: column;
+      gap: var(--tcm-space-4);
+    }
+
+    .pending-flag {
+      display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 3rem 1rem;
-      text-align: center;
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .pending-icon {
-      inline-size: 3rem;
-      block-size: 3rem;
-      font-size: 3rem;
-    }
-
-    h1 {
+      align-self: flex-start;
+      gap: var(--tcm-space-2);
       margin: 0;
-      font: var(--mat-sys-headline-small);
-      color: var(--mat-sys-on-surface);
+      padding: var(--tcm-space-1) var(--tcm-space-3);
+      border-radius: var(--tcm-radius-pill);
+      background: var(--tcm-caution-container);
+      color: var(--tcm-on-caution-container);
+      font: var(--mat-sys-label-medium);
+    }
+
+    .pending-flag mat-icon {
+      inline-size: 1rem;
+      block-size: 1rem;
+      font-size: 1rem;
     }
   `,
 })

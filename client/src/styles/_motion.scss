@@ -1,0 +1,84 @@
+// -----------------------------------------------------------------------------------------
+// Motion.
+//
+// Angular Material 22 dropped `@angular/animations` and animates with CSS, so everything
+// here is CSS too — see the version-drift traps in CLAUDE.md. Route transitions come from
+// the browser's View Transitions API, wired up by `withViewTransitions()` in app.config.ts.
+//
+// Every rule below is switched off under `prefers-reduced-motion`. That is not a courtesy:
+// vestibular disorders make sliding and scaling genuinely unpleasant.
+// -----------------------------------------------------------------------------------------
+
+@keyframes tcm-fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tcm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tcm-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/// A block that should arrive rather than appear. Used for page content and dialog bodies.
+.tcm-enter {
+  animation: tcm-fade-rise var(--tcm-duration-slow) var(--tcm-ease-emphasized) both;
+}
+
+/// Staggers the children of a list or card grid. Capped at eight: past that the last item is
+/// waiting long enough to feel like a slow page rather than a considered one.
+.tcm-stagger > * {
+  animation: tcm-fade-rise var(--tcm-duration-base) var(--tcm-ease-standard) both;
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{($i - 1) * 40}ms;
+    }
+  }
+
+  &:nth-child(n + 9) {
+    animation-delay: 320ms;
+  }
+}
+
+// The route transition itself. Short, and a cross-fade rather than a slide — the two screens
+// are peers, so there is no direction to imply.
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--tcm-duration-base);
+  animation-timing-function: var(--tcm-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

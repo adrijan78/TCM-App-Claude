@@ -1,0 +1,141 @@
+// -----------------------------------------------------------------------------------------
+// TCM design tokens
+//
+// The single place a colour, radius, spacing step, duration or shadow is declared. A
+// component that needs one of these reaches for the variable; it never writes the value.
+// If you find yourself typing a hex code or a bare `rem` inside a component, the token is
+// missing — add it here instead.
+//
+// Colours use the CSS `light-dark()` function, which resolves against the `color-scheme` on
+// the root element. `ThemeService` sets that to `light`, `dark` or `light dark` (follow the
+// system), so both themes come from one declaration and can never drift apart.
+// -----------------------------------------------------------------------------------------
+
+:root {
+  // --- Spacing -----------------------------------------------------------------------------
+  // A 4px base. Component padding, gaps and page rhythm all come from these six steps.
+  --tcm-space-1: 0.25rem;
+  --tcm-space-2: 0.5rem;
+  --tcm-space-3: 0.75rem;
+  --tcm-space-4: 1rem;
+  --tcm-space-5: 1.5rem;
+  --tcm-space-6: 2rem;
+  --tcm-space-7: 3rem;
+  --tcm-space-8: 4rem;
+
+  // --- Shape -------------------------------------------------------------------------------
+  --tcm-radius-sm: 0.375rem;
+  --tcm-radius-md: 0.625rem;
+  --tcm-radius-lg: 1rem;
+  --tcm-radius-xl: 1.5rem;
+  --tcm-radius-pill: 999px;
+
+  // --- Elevation ---------------------------------------------------------------------------
+  // Dark surfaces do not read depth from a shadow, so the dark variants lean on a lighter
+  // ring instead of a heavier blur.
+  --tcm-shadow-1: light-dark(0 1px 2px rgb(16 24 40 / 6%), 0 0 0 1px rgb(255 255 255 / 6%));
+  --tcm-shadow-2: light-dark(0 1px 3px rgb(16 24 40 / 8%), 0 0 0 1px rgb(255 255 255 / 8%));
+  --tcm-shadow-3: light-dark(0 8px 24px -6px rgb(16 24 40 / 14%), 0 8px 24px -6px rgb(0 0 0 / 60%));
+
+  // --- Layout ------------------------------------------------------------------------------
+  --tcm-toolbar-height: 4rem;
+  --tcm-sidenav-width: 15.5rem;
+  --tcm-sidenav-rail-width: 4.5rem;
+  --tcm-content-max: 84rem;
+
+  // --- Motion ------------------------------------------------------------------------------
+  --tcm-duration-fast: 120ms;
+  --tcm-duration-base: 200ms;
+  --tcm-duration-slow: 320ms;
+  --tcm-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --tcm-ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  // --- Signal colours ----------------------------------------------------------------------
+  // Four ramps carry every state in the app. Each has an accent (icons, borders, chart marks
+  // — at least 3:1 against the page) and a container/on-container pair for chips and banners
+  // (text at least 4.5:1 against its own container).
+  //
+  // Domain names below are aliases onto these four, so "training finished", "member present"
+  // and "membership paid" are the same green everywhere without four chances to disagree.
+  --tcm-positive: light-dark(#1c6c3f, #6edc9b);
+  --tcm-positive-container: light-dark(#d3f2e0, #113c25);
+  --tcm-on-positive-container: light-dark(#0c4526, #a9f2c7);
+
+  --tcm-caution: light-dark(#8a5a00, #f5c257);
+  --tcm-caution-container: light-dark(#fdeecd, #43310a);
+  --tcm-on-caution-container: light-dark(#573900, #ffe1a3);
+
+  --tcm-critical: light-dark(#a3182a, #ff9c9c);
+  --tcm-critical-container: light-dark(#fbdde0, #4d1119);
+  --tcm-on-critical-container: light-dark(#6d0f1c, #ffd3d5);
+
+  --tcm-info: light-dark(#1e4f8a, #96c2f5);
+  --tcm-info-container: light-dark(#dbe8fa, #12304f);
+  --tcm-on-info-container: light-dark(#153b69, #c9dffa);
+
+  --tcm-quiet: light-dark(#5b6270, #a9b1c1);
+  --tcm-quiet-container: light-dark(#eceef2, #2b303a);
+  --tcm-on-quiet-container: light-dark(#3d434e, #d5dae3);
+
+  // --- Domain aliases ----------------------------------------------------------------------
+  // Training status (SPEC 6.5: green finished, yellow active). Cancelled is deliberately
+  // quiet rather than red — a cancelled session is a fact, not a failure.
+  --tcm-training-finished: var(--tcm-positive);
+  --tcm-training-active: var(--tcm-caution);
+  --tcm-training-cancelled: var(--tcm-quiet);
+
+  // Attendance (SPEC 6.6).
+  --tcm-attendance-present: var(--tcm-positive);
+  --tcm-attendance-absent: var(--tcm-critical);
+  --tcm-attendance-invited: var(--tcm-info);
+
+  // Note priority (SPEC 6.8 — High sorts first, so it must also read first).
+  --tcm-priority-high: var(--tcm-critical);
+  --tcm-priority-medium: var(--tcm-caution);
+  --tcm-priority-low: var(--tcm-info);
+
+  // Membership dues (SPEC 6.4, 6.7).
+  --tcm-payment-paid: var(--tcm-positive);
+  --tcm-payment-due: var(--tcm-caution);
+  --tcm-payment-overdue: var(--tcm-critical);
+
+  // --- Belt colours ------------------------------------------------------------------------
+  // Literal, not semantic: a green belt is green because the belt is green. Every swatch is
+  // rendered with a ring, so White stays visible on a white surface and Black on a dark one.
+  --tcm-belt-white: #f4f4f5;
+  --tcm-belt-yellow: #f2c744;
+  --tcm-belt-green: #2f9e5f;
+  --tcm-belt-blue: #2f6fc4;
+  --tcm-belt-red: #c8382f;
+  --tcm-belt-black: light-dark(#1a1a1e, #3a3a42);
+  --tcm-belt-ring: light-dark(rgb(0 0 0 / 25%), rgb(255 255 255 / 35%));
+
+  // --- Chart palette -----------------------------------------------------------------------
+  // Okabe-Ito hues, which stay distinguishable under the common forms of colour blindness,
+  // with the brand blue in the first slot — then darkened for the light theme until every
+  // swatch clears 3:1 against the page. The published Okabe-Ito values are chosen for hue
+  // separation, not contrast: the orange and the sky blue sit at about 2.2:1 on white, which
+  // is a chart nobody can read in sunlight. Verified by `scripts/check-contrast.py`.
+  //
+  // Series order is fixed, so "trainings" is the same colour on every chart in the app.
+  --tcm-chart-1: light-dark(#4c6fbf, #8fabe8);
+  --tcm-chart-2: light-dark(#b87f00, #f0b840);
+  --tcm-chart-3: light-dark(#009e73, #3fc79c);
+  --tcm-chart-4: light-dark(#c0729d, #e39dc4);
+  --tcm-chart-5: light-dark(#1f7f9c, #6cc0dd);
+  --tcm-chart-6: light-dark(#d55e00, #f0813a);
+  --tcm-chart-7: light-dark(#7a3fa0, #c69ae8);
+  --tcm-chart-8: light-dark(#6e7b8b, #9aa6b5);
+  --tcm-chart-grid: light-dark(rgb(16 24 40 / 8%), rgb(255 255 255 / 10%));
+
+  // --- Surfaces ----------------------------------------------------------------------------
+  // Material's own system variables cover most of this; these two exist because the app
+  // repeats a "raised panel on a recessed page" pattern that M3 has no single token for.
+  --tcm-page-bg: var(--mat-sys-surface-container-lowest);
+  --tcm-panel-bg: var(--mat-sys-surface);
+  --tcm-panel-border: var(--mat-sys-outline-variant);
+
+  // Skeleton loaders shimmer between these two.
+  --tcm-skeleton-base: light-dark(#e6e8ec, #2a2e36);
+  --tcm-skeleton-sheen: light-dark(#f2f3f6, #363b45);
+}

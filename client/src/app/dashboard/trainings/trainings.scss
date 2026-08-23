@@ -1,0 +1,194 @@
+.tr-view {
+  --mat-standard-button-toggle-height: 2.5rem;
+}
+
+.tr-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-3);
+  margin-block-end: var(--tcm-space-5);
+  padding: var(--tcm-space-3) var(--tcm-space-4);
+}
+
+.tr-filters mat-form-field {
+  flex: 1 1 10rem;
+  max-inline-size: 13rem;
+}
+
+.tr-search {
+  flex: 2 1 18rem;
+  max-inline-size: 24rem;
+}
+
+.tr-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tcm-space-2);
+}
+
+.tr-table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tr-table {
+  inline-size: 100%;
+  min-inline-size: 48rem;
+}
+
+.tr-date {
+  display: block;
+  font-weight: 500;
+}
+
+.tr-time {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-name {
+  font-weight: 500;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.tr-turnout {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tr-turnout-pct {
+  margin-inline-start: var(--tcm-space-2);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.tr-actions {
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* ---- Calendar view ------------------------------------------------------------------------ */
+
+.tr-calendar-layout {
+  display: grid;
+  gap: var(--tcm-space-5);
+  align-items: start;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 22rem 1fr;
+  }
+}
+
+.tr-calendar {
+  padding: var(--tcm-space-3);
+}
+
+.tr-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-3);
+  margin: var(--tcm-space-3) 0 0;
+  padding: var(--tcm-space-3) var(--tcm-space-2) 0;
+  border-block-start: 1px solid var(--tcm-panel-border);
+  list-style: none;
+  font: var(--mat-sys-label-medium);
+  color: var(--mat-sys-on-surface-variant);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--tcm-space-2);
+  }
+}
+
+.tr-key-dot {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  border-radius: 50%;
+}
+
+.tr-key-active {
+  background: var(--tcm-training-active);
+}
+
+.tr-key-finished {
+  background: var(--tcm-training-finished);
+}
+
+.tr-key-cancelled {
+  background: var(--tcm-training-cancelled);
+}
+
+/*
+  MatCalendar renders its own cells, so the day markers have to be reached from here. An
+  underline bar rather than a filled cell: filling it fights the "today" and "selected"
+  states Material already draws, and a bar survives both.
+*/
+::ng-deep .mat-calendar-body-cell {
+  &.cal-active .mat-calendar-body-cell-content::after,
+  &.cal-finished .mat-calendar-body-cell-content::after,
+  &.cal-cancelled .mat-calendar-body-cell-content::after {
+    content: '';
+    position: absolute;
+    inset-block-end: 0.15rem;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: 0.9rem;
+    block-size: 0.2rem;
+    border-radius: var(--tcm-radius-pill);
+  }
+
+  &.cal-active .mat-calendar-body-cell-content::after {
+    background: var(--tcm-training-active);
+  }
+
+  &.cal-finished .mat-calendar-body-cell-content::after {
+    background: var(--tcm-training-finished);
+  }
+
+  &.cal-cancelled .mat-calendar-body-cell-content::after {
+    background: var(--tcm-training-cancelled);
+  }
+}
+
+.tr-day-title {
+  margin: 0 0 var(--tcm-space-3);
+  font: var(--mat-sys-title-medium);
+}
+
+.tr-day-list {
+  display: grid;
+  gap: var(--tcm-space-3);
+}
+
+.tr-day-card {
+  padding: var(--tcm-space-4);
+}
+
+.tr-day-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tcm-space-3);
+  margin-block-end: var(--tcm-space-2);
+}
+
+.tr-day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tcm-space-2);
+}
+
+.tr-day-turnout {
+  margin: var(--tcm-space-2) 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}

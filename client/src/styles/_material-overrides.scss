@@ -1,0 +1,75 @@
+// -----------------------------------------------------------------------------------------
+// The few places Angular Material's defaults are adjusted to match the token system.
+//
+// Kept small and in one file on purpose. Restyling Material from inside feature components
+// is how a design system rots: the override ends up scoped to one screen and the next screen
+// looks different for no reason anyone remembers.
+// -----------------------------------------------------------------------------------------
+
+// Form fields sit in grids throughout the app and should fill their column.
+.mat-mdc-form-field {
+  inline-size: 100%;
+}
+
+// M3's default outlined field corner is squarer than the panels around it.
+.mat-mdc-text-field-wrapper {
+  border-radius: var(--tcm-radius-md);
+}
+
+// Buttons: give them the app's pill-ish shape and enough height to be a comfortable
+// touch target on a phone (44px is the accessibility floor).
+.mat-mdc-button-base {
+  --mdc-text-button-container-shape: var(--tcm-radius-md);
+  --mdc-filled-button-container-shape: var(--tcm-radius-md);
+  --mdc-outlined-button-container-shape: var(--tcm-radius-md);
+  --mdc-protected-button-container-shape: var(--tcm-radius-md);
+  min-block-size: 2.75rem;
+}
+
+.mat-mdc-icon-button {
+  min-block-size: auto;
+}
+
+// Tables: the app's tables are dense records, not marketing layouts.
+.mat-mdc-table {
+  background: transparent;
+
+  .mat-mdc-header-cell {
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .mat-mdc-row:hover .mat-mdc-cell {
+    background: var(--mat-sys-surface-container-low);
+  }
+}
+
+// Cards and dialogs pick up the panel shape so nothing on screen has two different corners.
+.mat-mdc-card,
+.mat-mdc-dialog-surface {
+  border-radius: var(--tcm-radius-lg) !important;
+}
+
+.mat-mdc-dialog-surface {
+  box-shadow: var(--tcm-shadow-3) !important;
+}
+
+// Tabs: a heavier active label reads better than Material's default weight change alone.
+.mat-mdc-tab .mdc-tab__text-label {
+  font: var(--mat-sys-title-small);
+}
+
+// The snackbar is the app's only floating message; lift it clear of the viewport edge.
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-shape: var(--tcm-radius-md);
+  margin: var(--tcm-space-4);
+}
+
+// Menus and select panels share the panel treatment.
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  border-radius: var(--tcm-radius-md) !important;
+  box-shadow: var(--tcm-shadow-3) !important;
+}

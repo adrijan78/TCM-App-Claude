@@ -1,0 +1,26 @@
+.notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tcm-space-4);
+  margin-block-end: var(--tcm-space-5);
+  padding: var(--tcm-space-3) var(--tcm-space-4);
+}
+
+.notes-toolbar mat-form-field {
+  flex: 1 1 18rem;
+  max-inline-size: 26rem;
+}
+
+.notes-count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+
+.notes-grid {
+  display: grid;
+  gap: var(--tcm-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  align-items: stretch;
+}
