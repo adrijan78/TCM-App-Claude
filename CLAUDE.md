@@ -19,6 +19,7 @@ Checked **2026-08-22** against the official .NET release index and the npm regis
 | Angular Material + CDK | 22.1.3 | Tracks the Angular major |
 | TypeScript | 6.0.2 | What Angular 22 pins |
 | Bootstrap | 5.3.8 | Spec requires Bootstrap 5, **grid and utilities only** |
+| Chart.js | 4.5.1 | Charts for SPEC §6.2 and §6.4. Used directly, not via an Angular wrapper — wrappers pin a peer range against the Angular major and lag a new release |
 | Docker | 27.3.1 | |
 
 ## Library decisions made during scaffolding
@@ -35,6 +36,8 @@ Checked **2026-08-22** against the official .NET release index and the npm regis
 ## Version-drift traps already hit (do not rediscover these)
 
 - **Angular 22 is zoneless** — there is no `zone.js` dependency. Change detection is signal-driven. Do not add `provideZoneChangeDetection`.
+- **Angular Material 22 dropped `@angular/animations`** from its peer dependencies and animates with CSS. `provideAnimationsAsync()` fails the build on a package that is not installed — do not add it back.
+- **`ng test` watches by default.** Use `npm run test:ci` (`ng test --watch=false`) for a single pass; `--run` is not a valid flag.
 - **Angular 22 tests with Vitest + jsdom**, not Karma/Jasmine. Use `vi.fn()`, not `jasmine.createSpy()`. SPEC predates this.
 - **EF Core 10 cannot translate `DateTimeOffset.Year` / `.Month` in a `GroupBy` key** — on SQL Server *or* SQLite. The dashboard's trainings-per-month chart needs exactly that, so `Training.Date`, `Attendance.Date`, `Payment.PaymentDate` and `Note.CreatedAt` are **UTC `DateTime`**, not `DateTimeOffset`. Store UTC; the club runs in one time zone.
 - **EF cannot project straight into a record's constructor from inside a `GroupBy`.** Group into an anonymous type, then map after materialising.
@@ -108,8 +111,9 @@ Phases 0–6 are complete. `dotnet build` is clean and **170 endpoint tests pass
 - **4** generic repository, FluentValidation at the service boundary, Common reference slice.
 - **5** photos in the database, Stripe behind `Stripe:Enabled`, Gmail SMTP sender.
 - **6** all four backend domains — Members, Trainings/Attendance, Payments, Notes — built in parallel, merged, and audited. Five security findings from that audit are fixed.
+- **7** Angular foundation: `_models` mirroring every server DTO, typed `AuthService`, JWT and error interceptors, `authGuard`/`coachGuard`, the shell with its two role-dependent menus, lazy routing, and the shared `StatePanel` / `ConfirmDialog` / `ChartComponent`. `ng build` clean, **9 client tests pass**.
 
-Next is Phase 7 (Angular foundation). See [plan.md](plan.md).
+Next is Phase 8 (auth screens). See [plan.md](plan.md).
 
 ### Known items carried forward to Phase 12
 

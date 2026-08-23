@@ -1,12 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+/**
+ * Root component. It holds nothing but the outlet — the signed-in chrome lives in
+ * `Shell`, so the login and reset screens render full-page without it.
+ */
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  template: '<router-outlet />',
 })
-export class App {
-  protected readonly title = signal('client');
-}
+export class App {}

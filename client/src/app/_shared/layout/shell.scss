@@ -1,0 +1,71 @@
+.shell-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 0.5rem;
+}
+
+.shell-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.shell-spacer {
+  flex: 1 1 auto;
+}
+
+.shell-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shell-avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 50%;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font: var(--mat-sys-label-medium);
+}
+
+.shell-account-name {
+  // The name is a nicety; the avatar carries the identity on small screens.
+  display: none;
+
+  @media (min-width: 576px) {
+    display: inline;
+  }
+}
+
+.shell-account-role {
+  padding: 0.5rem 1rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.shell-container {
+  // Fill what the toolbar leaves behind.
+  block-size: calc(100dvh - 64px);
+}
+
+.shell-sidenav {
+  inline-size: 15rem;
+  border-inline-end: 1px solid var(--mat-sys-outline-variant);
+}
+
+.shell-nav-active {
+  background: var(--mat-sys-secondary-container);
+
+  .mat-mdc-list-item-title,
+  .mat-icon {
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.shell-content {
+  background: var(--mat-sys-surface-container-lowest);
+}

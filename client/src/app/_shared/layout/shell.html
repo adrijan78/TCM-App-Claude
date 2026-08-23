@@ -1,0 +1,55 @@
+<mat-toolbar color="primary" class="shell-toolbar">
+  <button
+    mat-icon-button
+    (click)="toggleSidenav()"
+    [attr.aria-label]="sidenavOpen() ? 'Hide navigation' : 'Show navigation'"
+    [attr.aria-expanded]="sidenavOpen()"
+  >
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <span class="shell-title">Taekwondo Club</span>
+  <span class="shell-spacer"></span>
+
+  <button mat-button [matMenuTriggerFor]="accountMenu" class="shell-account">
+    <span class="shell-avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="shell-account-name">{{ fullName() }}</span>
+    <mat-icon>arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #accountMenu="matMenu">
+    <div class="shell-account-role" role="note">{{ isCoach() ? 'Coach' : 'Member' }}</div>
+    <a mat-menu-item routerLink="/dashboard/profile">
+      <mat-icon>person</mat-icon>
+      <span>My profile</span>
+    </a>
+    <button mat-menu-item (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+      <span>Sign out</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>
+
+<mat-sidenav-container class="shell-container">
+  <mat-sidenav [opened]="sidenavOpen()" mode="side" class="shell-sidenav">
+    <mat-nav-list>
+      @for (item of navItems(); track item.link) {
+        <a
+          mat-list-item
+          [routerLink]="item.link"
+          routerLinkActive="shell-nav-active"
+          [routerLinkActiveOptions]="{ exact: item.link === '/dashboard' }"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <main class="container-fluid py-4">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

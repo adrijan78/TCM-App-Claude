@@ -270,7 +270,7 @@ Phases 0–4 are strictly sequential: they set versions, layout, schema and hous
 ## 5. Open items
 
 - **Hosting** stays undecided by design (spec section 9). Phase 12 makes the app deployment-ready without choosing; revisit once the target is known.
-- **Charting library** — pick one in phase 7 and use it for every chart in sections 6.2 and 6.4.
+- ~~**Charting library**~~ — resolved in phase 7: **Chart.js 4**, used directly through the shared `<app-chart>` component rather than via an Angular wrapper library. Calendar colour-coding uses Material's `MatCalendar` with `dateClass`, so no second date dependency.
 - **`gitkraken`** needs a one-time authentication before its git and PR context becomes available.
 - **Stripe credentials** are deferred by explicit decision. `Stripe:Enabled` is `false` with a dummy key, so the local fake carries the whole payment flow. Flip the flag and supply real test keys to switch over — no code change.
 - **Gmail app password** is still needed before real email sends; until then `LoggingEmailService` records what would have gone out.
