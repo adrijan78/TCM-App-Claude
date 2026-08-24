@@ -308,9 +308,9 @@ Phases 0–4 are strictly sequential: they set versions, layout, schema and hous
 
 ## 5. Open items
 
-- **Playwright** is used ad hoc in phase 8b for the visual sweep (`client/scripts/screenshots.mjs`) but is deliberately *not* a project dependency yet — phase 11 installs it properly for `e2e/`. Until then the script documents its own two-line setup.
+- ~~**Playwright** is used ad hoc in phase 8b … phase 11 installs it properly for `e2e/`~~ — done in phase 11. `e2e/` is its own package with `@playwright/test`, four journeys, and a `webServer` block that starts the API and the client itself. `client/scripts/screenshots.mjs` still stands alone for the visual sweep.
 - **Hosting** stays undecided by design (spec section 9). Phase 12 makes the app deployment-ready without choosing; revisit once the target is known.
 - ~~**Charting library**~~ — resolved in phase 7: **Chart.js 4**, used directly through the shared `<app-chart>` component rather than via an Angular wrapper library. Calendar colour-coding uses Material's `MatCalendar` with `dateClass`, so no second date dependency.
 - **`gitkraken`** needs a one-time authentication before its git and PR context becomes available.
 - **Stripe credentials** are deferred by explicit decision. `Stripe:Enabled` is `false` with a dummy key, so the local fake carries the whole payment flow. Flip the flag and supply real test keys to switch over — no code change.
-- **Gmail app password** is still needed before real email sends; until then `LoggingEmailService` records what would have gone out.
+- ~~**Gmail app password** is still needed before real email sends~~ — supplied 2026-08-24 and stored in user-secrets. `SmtpEmailService` is now the registered sender and delivery is confirmed. The one part still not automated is reading a reset token out of an inbox; a mail catcher would close it (phase 12).

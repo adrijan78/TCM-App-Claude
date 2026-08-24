@@ -1,0 +1,16 @@
+{
+  "name": "tcm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Taekwondo Club Management — repository-level test orchestration. The app itself lives in server/ (.NET) and client/ (Angular); this file exists so the whole suite has one command.",
+  "scripts": {
+    "test": "npm run test:api && npm run test:client && npm run test:e2e",
+    "test:fast": "npm run test:api && npm run test:client",
+    "test:api": "dotnet test",
+    "test:client": "npm --prefix client run test:ci",
+    "test:e2e": "npm --prefix e2e test",
+    "e2e:install": "npm --prefix e2e install && npm --prefix e2e run install:browsers",
+    "e2e:report": "npm --prefix e2e run report",
+    "check:contrast": "npm --prefix client run check:contrast"
+  }
+}

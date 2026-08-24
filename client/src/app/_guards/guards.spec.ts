@@ -14,6 +14,7 @@ import {
 import { authGuard } from './auth.guard';
 import { coachGuard } from './coach.guard';
 import { coachHomeMatch } from './home.guard';
+import { guestGuard } from './guest.guard';
 import { profileAccessGuard } from './own-profile.guard';
 
 const STORAGE_KEY = 'tcm.session';
@@ -184,5 +185,69 @@ describe('coachHomeMatch', () => {
     configure();
 
     expect(matchHome()).toBe(false);
+  });
+});
+
+/**
+ * `guestGuard` is the mirror of `authGuard`. Its `returnUrl` handling repeats the same rule the
+ * login screen uses: only a path starting with a single `/` is followed, so a crafted link
+ * cannot turn a successful sign-in into an open redirect.
+ */
+describe('guestGuard', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  function runAsGuest(queryParams: Record<string, string> = {}): boolean | UrlTree {
+    const route = {
+      queryParamMap: convertToParamMap(queryParams),
+    } as ActivatedRouteSnapshot;
+
+    return TestBed.runInInjectionContext(() =>
+      guestGuard(route, { url: '/login' } as RouterStateSnapshot),
+    ) as boolean | UrlTree;
+  }
+
+  it('lets a signed-out visitor reach the login screen', () => {
+    configure();
+
+    expect(runAsGuest()).toBe(true);
+  });
+
+  it('sends a signed-in user to the dashboard instead', () => {
+    storeSession(['Member']);
+    configure();
+
+    expect(runAsGuest().toString()).toBe('/dashboard');
+  });
+
+  it('honours a returnUrl so a bookmarked login link still lands where it pointed', () => {
+    storeSession(['Coach']);
+    configure();
+
+    expect(runAsGuest({ returnUrl: '/dashboard/members' }).toString()).toBe('/dashboard/members');
+  });
+
+  it('ignores an absolute returnUrl pointing off-site', () => {
+    storeSession(['Coach']);
+    configure();
+
+    expect(runAsGuest({ returnUrl: 'https://evil.test/steal' }).toString()).toBe('/dashboard');
+  });
+
+  it('ignores a protocol-relative returnUrl', () => {
+    // "//evil.test" starts with a slash but is still off-site.
+    storeSession(['Coach']);
+    configure();
+
+    const destination = runAsGuest({ returnUrl: '//evil.test/steal' }).toString();
+
+    expect(destination.startsWith('//')).toBe(false);
+  });
+
+  it('treats an expired session as signed out', () => {
+    storeSession(['Member'], -5);
+    configure();
+
+    expect(runAsGuest()).toBe(true);
   });
 });

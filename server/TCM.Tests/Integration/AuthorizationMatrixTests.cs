@@ -363,6 +363,133 @@ public class AuthorizationMatrixTests(TcmApiFactory factory) : IClassFixture<Tcm
         Assert.Equal(0d, body.Data.AttendancePercentage);
     }
 
+    // ---- Completeness: every protected route, both refusals ------------------------------------
+
+    /// <summary>
+    /// Every authenticated route in the API. Listing them in one place is what turns "we tested
+    /// the routes we remembered" into a matrix: a new endpoint that is not added here has no
+    /// anonymous test, and a reviewer can see the whole surface at a glance.
+    /// </summary>
+    public static TheoryData<string, string> ProtectedRoutes() => new()
+    {
+        { "POST", "/api/account/register" },
+        { "GET", "/api/common/belts" },
+        { "GET", "/api/common/club-numbers" },
+        { "GET", "/api/roles" },
+        { "GET", "/api/members" },
+        { "GET", "/api/members/some-id" },
+        { "PUT", "/api/members/some-id" },
+        { "PATCH", "/api/members/some-id/deactivate" },
+        { "GET", "/api/members/some-id/belts" },
+        { "POST", "/api/members/some-id/belts" },
+        { "DELETE", "/api/members/some-id/belts/1" },
+        { "GET", "/api/notes" },
+        { "GET", "/api/notes/member/some-id" },
+        { "GET", "/api/notes/training/1/member/some-id" },
+        { "POST", "/api/notes" },
+        { "DELETE", "/api/notes/1" },
+        { "GET", "/api/payments" },
+        { "GET", "/api/payments/member/some-id" },
+        { "POST", "/api/payments/cash" },
+        { "DELETE", "/api/payments/1" },
+        { "POST", "/api/photos/member/some-id" },
+        { "GET", $"/api/photos/{EmptyGuid}" },
+        { "DELETE", $"/api/photos/{EmptyGuid}" },
+        { "POST", "/api/stripe/checkout-session" },
+        { "POST", "/api/stripe/confirm" },
+        { "GET", "/api/trainings" },
+        { "GET", "/api/trainings/calendar" },
+        { "GET", "/api/trainings/1" },
+        { "POST", "/api/trainings" },
+        { "PUT", "/api/trainings/1" },
+        { "DELETE", "/api/trainings/1" },
+        { "POST", "/api/trainings/1/attendance" },
+        { "PUT", "/api/trainings/1/attendance/some-id/performance" },
+        { "GET", "/api/trainings/member/some-id/attendance" }
+    };
+
+    /// <summary>
+    /// The coach-only subset. A member token must be refused on every one of these, whatever
+    /// ids are in the URL — the role is decided before the route parameters mean anything.
+    /// </summary>
+    public static TheoryData<string, string> CoachOnlyRoutes() => new()
+    {
+        { "POST", "/api/account/register" },
+        { "GET", "/api/roles" },
+        { "GET", "/api/members" },
+        { "PATCH", "/api/members/some-id/deactivate" },
+        { "POST", "/api/members/some-id/belts" },
+        { "DELETE", "/api/members/some-id/belts/1" },
+        { "GET", "/api/notes" },
+        { "GET", "/api/payments" },
+        { "POST", "/api/payments/cash" },
+        { "DELETE", "/api/payments/1" },
+        { "GET", "/api/trainings" },
+        { "GET", "/api/trainings/calendar" },
+        { "POST", "/api/trainings" },
+        { "PUT", "/api/trainings/1" },
+        { "DELETE", "/api/trainings/1" },
+        { "PUT", "/api/trainings/1/attendance/some-id/performance" }
+    };
+
+    private const string EmptyGuid = "00000000-0000-0000-0000-000000000000";
+
+    [Theory]
+    [MemberData(nameof(ProtectedRoutes))]
+    public async Task EveryProtectedRoute_Anonymously_Returns401(string method, string route)
+    {
+        var client = factory.CreateClient();
+
+        var response = await client.SendAsync(EmptyRequest(method, route));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [MemberData(nameof(CoachOnlyRoutes))]
+    public async Task EveryCoachOnlyRoute_AsMember_Returns403(string method, string route)
+    {
+        var client = await ClientAsAsync(TcmApiFactory.MemberEmail);
+
+        var response = await client.SendAsync(EmptyRequest(method, route));
+
+        // 403, not 404: the role is decided before the made-up ids in these URLs are looked at.
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [MemberData(nameof(ProtectedRoutes))]
+    public async Task EveryProtectedRoute_WithATamperedToken_Returns401(string method, string route)
+    {
+        var client = await ClientAsAsync(TcmApiFactory.CoachEmail);
+        var valid = client.DefaultRequestHeaders.Authorization!.Parameter!;
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", valid[..^6] + "AAAAAA");
+
+        var response = await client.SendAsync(EmptyRequest(method, route));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    /// <summary>
+    /// A request with an empty body of the shape the route consumes. Nothing here should ever
+    /// reach model binding — these tests assert the pipeline refuses first — so the body only
+    /// has to be well formed enough to get past content negotiation.
+    /// </summary>
+    /// <remarks>
+    /// The photo upload consumes multipart/form-data, and ASP.NET Core rejects the wrong content
+    /// type with 415 <em>before</em> the authorization filter runs. Posting JSON there would
+    /// prove nothing about authentication, so it gets a multipart body instead.
+    /// </remarks>
+    private static HttpRequestMessage EmptyRequest(string method, string route) =>
+        new(new HttpMethod(method), route)
+        {
+            Content = route.StartsWith("/api/photos/member/", StringComparison.Ordinal)
+                ? new MultipartFormDataContent { { new ByteArrayContent([1, 2, 3]), "file", "x.png" } }
+                : new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+        };
+
+
     private static MemberRegisterDto NewMember(string email) => new(
         FirstName: "New",
         LastName: "Recruit",

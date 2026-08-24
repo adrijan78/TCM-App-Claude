@@ -98,13 +98,19 @@ dotnet ef database update      -p server/TCM.Infrastructure -s server/TCM.Api
 cd client && npm start
 cd client && npm run build
 cd client && npm test
+
+# the whole suite, from the repository root
+npm test              # backend + client + end-to-end
+npm run test:fast     # backend + client, skipping the browser journeys
+npm run test:e2e      # the Playwright journeys alone
+npm run e2e:install   # one-time: Playwright and its Chromium build
 ```
 
 See the `tcm-run-local` skill for the full configuration key list, seeded accounts, and the first-run failure table.
 
 ## Build status
 
-Phases 0–10 are complete. `dotnet build` is clean, **172 endpoint tests pass**, `ng build` is clean and **108 client tests pass**.
+Phases 0–11 are complete. `dotnet build` is clean, `ng build` is clean, and the whole suite is green: **376 backend tests**, **149 client tests**, **33 Playwright end-to-end tests**. One command runs all three — `npm test` at the repository root.
 
 - **0–1** versions pinned (.NET 10 LTS, Angular 22), solution scaffolded, client builds.
 - **2** schema from SPEC §4 applied, seeder idempotent.
@@ -121,7 +127,48 @@ Phases 0–10 are complete. `dotnet build` is clean, **172 endpoint tests pass**
 
 - **10** the member experience: `MemberHome` at `/dashboard` (chosen by `coachHomeMatch`, not by a redirect), `profileAccessGuard` on `/dashboard/members/:id`, and the member's own notes panel on a training. Verified against the running API — every coach-only endpoint answers 403 to a member token, every own-data endpoint answers 200, and every forced coach-only URL lands back on `/dashboard`.
 
-Next is Phase 11 (the test suite), then 12. See [plan.md](plan.md).
+- **11** the test suite. Service unit tests with NSubstitute and repository tests against a real SQLite provider (both new — the project had only endpoint tests before), the authorization matrix rebuilt as a data-driven route table, the missing client specs (error interceptor, `CommonService`, `unwrap`, `guestGuard`), and `e2e/` with four Playwright journeys.
+
+Next is Phase 12. See [plan.md](plan.md).
+
+### Conventions set in Phase 11
+
+- **`npm test` at the repository root runs everything.** The root `package.json` exists only to
+  orchestrate — the app is still `server/` and `client/`. `npm run test:fast` skips the browser
+  journeys for the loop you actually run while working.
+- **Never name a test namespace `Unit`.** `TCM.Tests.Unit` shadowed the `Unit` type in
+  `ApiResponse<Unit>` for the *whole* test assembly, and every existing integration test stopped
+  compiling with "'Unit' is a namespace but is used like a type". The folder is `UnitTests/`.
+- **Repository tests run against a real provider, never a substitute.** What they check is that a
+  query *translates* and that the club filter is applied in SQL; an in-memory list would evaluate
+  the same LINQ client-side and happily pass something SQL Server would reject. `RepositoryFixture`
+  seeds two clubs, so every "scoped to the caller's club" query has something it could wrongly
+  return.
+- **The authorization matrix is a route table, not a pile of tests.** `ProtectedRoutes()` and
+  `CoachOnlyRoutes()` in `AuthorizationMatrixTests` list every endpoint once and drive three
+  theories — anonymous, member, tampered token. A new endpoint that is not in the table has no
+  anonymous coverage, and that is visible at a glance rather than buried.
+- **Content negotiation runs before authorization; so does routing.** Posting JSON to the
+  multipart photo-upload route answers **415** before the `[Authorize]` filter is reached, and a
+  GET at a POST-only route answers **405**. Both would look like a passing auth test and prove
+  nothing. Call every route with the verb and content type it actually consumes.
+- **A service unit test earns its place by testing the rule without the attribute.** The endpoint
+  suite proves the pipeline refuses a member; the unit suite proves `NoteService` and friends
+  refuse one too, so the rule survives a future caller that forgets the attribute. That belt and
+  braces is the convention this codebase already had — these tests just pin it.
+- **Playwright starts both servers itself** (`webServer` array, `reuseExistingServer: true`), so
+  `npm run test:e2e` is genuinely one command. The **SQL Server container is the one prerequisite**
+  — `docker start tcm-sql` — because it is long-lived and shared with ordinary development.
+- **The e2e suite needs the seeded coach's credentials in the environment**, never in source
+  (SPEC section 9): `TCM_E2E_COACH_EMAIL` and `TCM_E2E_COACH_PASSWORD`, the same values as
+  `Seed:CoachEmail` / `Seed:CoachPassword`. It creates its own members from there, so re-running it
+  never collides with its own leftovers.
+- **The password-reset token cannot be automated end to end.** Identity generates it from the
+  user's security stamp and it only leaves the server inside an email, so there is nothing to read
+  it back from — and adding a route that returned one would be a real hole in production for the
+  sake of a test. The suite covers both sides of the inbox (the request, the enumeration
+  guarantee, the forged token, the form rules); closing the middle needs a mail catcher, which is
+  now a Phase 12 item.
 
 ### Conventions set in Phase 10
 
@@ -172,6 +219,13 @@ The look is built from the subject rather than from Material's defaults. Three i
 - **Signal inputs receive query parameters** — `withComponentInputBinding()` is on, so `?returnUrl=`, `?email=` and `?token=` arrive as `input()`s rather than through `ActivatedRoute`. A `returnUrl` is followed only when it starts with a single `/`.
 
 ### Known items carried forward to Phase 12
+
+- **Email is live.** `Gmail:SenderEmail` and `Gmail:AppPassword` are set in user-secrets, so
+  `SmtpEmailService` is the registered `IEmailService` and all four messages really send. Before
+  that they were silently swallowed by `LoggingEmailService`, which is what "I don't get an email
+  when I create a training" turned out to be — the code path was always there.
+- A **mail catcher** (Mailpit or similar) pointed at the `Gmail:*` settings would let the
+  password-reset and training-invitation journeys be verified end to end instead of by hand.
 
 - Deleting an online payment frees its Stripe session id, so the id could be replayed to recreate it. Needs a voided-session record (a migration).
 - Deactivating a member does not revoke an already-issued JWT; they stay in until it expires. Needs security-stamp validation.
